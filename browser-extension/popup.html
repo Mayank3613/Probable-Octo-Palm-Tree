@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OctoPlamTree Threat Monitor</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="logo-section">
+        <div class="logo-icon"></div>
+        <h1>SentinelX Threat Layer</h1>
+      </div>
+      <div id="sys-status" class="sys-status-badge">
+        <span class="status-dot"></span>
+        <span id="sys-status-text">SECURE</span>
+      </div>
+    </header>
+
+    <!-- TAB NAVIGATION -->
+    <nav>
+      <button class="nav-tab active" data-tab="overview">Overview</button>
+      <button class="nav-tab" data-tab="threats">Threats (<span id="threat-badge">0</span>)</button>
+      <button class="nav-tab" data-tab="connections">Connections</button>
+      <button class="nav-tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <!-- MAIN VIEWPORT -->
+    <main>
+      
+      <!-- OVERVIEW PANEL -->
+      <section id="panel-overview" class="tab-panel active">
+        <div class="card-grid">
+          <div class="card">
+            <div class="card-label">Threats Logged</div>
+            <div id="stat-threats" class="card-value danger">0</div>
+          </div>
+          <div class="card">
+            <div class="card-label">Active Conns</div>
+            <div id="stat-conns" class="card-value safe">0</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <h3 style="font-size: 13px; margin-bottom: 10px; color: var(--text-secondary);">Last Detected Event</h3>
+          <div id="last-event-container">
+            <div class="empty-state">No threats detected on current workspace</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- THREATS LOG VIEW -->
+      <section id="panel-threats" class="tab-panel">
+        <div class="logs-container" id="logs-container">
+          <div class="empty-state">
+            <div class="empty-state-icon">🛡️</div>
+            <div>No threats detected yet</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONNECTIONS VIEW -->
+      <section id="panel-connections" class="tab-panel">
+        <div class="conns-container" id="conns-container">
+          <div class="empty-state">
+            <div class="empty-state-icon">📡</div>
+            <div>No network telemetry intercepted yet</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS PANEL -->
+      <section id="panel-settings" class="tab-panel">
+        <div class="settings-section">
+          
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">URL Protection</span>
+              <span class="setting-desc">Scans addresses for typosquatting & phishing keywords</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-url" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">DOM Analyzer</span>
+              <span class="setting-desc">Checks webpages for invisible iframes, overlays, & script size</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-dom" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Download Scanning</span>
+              <span class="setting-desc">Blocks execution-prone file extensions & double-extensions</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-downloads" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Self-Healing Protocols</span>
+              <span class="setting-desc">Isolates high-risk tabs & destroys session cookies automatically</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-healing" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Telemetry Sync</span>
+              <span class="setting-desc">Feeds telemetry to Central threat intelligence server</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="setting-telemetry" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+      <div>SentinelX v1.0.0</div>
+      <button id="btn-clear-logs" class="footer-btn">Clear Records</button>
+    </footer>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
