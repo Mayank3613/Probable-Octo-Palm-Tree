@@ -2,7 +2,7 @@
 // Orchestrates DOM scanning, hooks MAIN world APIs, and reports to Background
 
 (function() {
-  console.log("[OctoPlamTree] Content script initializing...");
+  console.log("[OctoPlamTree] Content script initializing on:", window.location.href);
 
   // 1. Inject the page-level API hook script (inject.js) into the MAIN world
   function injectMainWorldScript() {
@@ -14,21 +14,22 @@
       };
       (document.head || document.documentElement).appendChild(script);
     } catch (e) {
-      console.debug("Failed to inject main world hook script:", e);
+      console.debug("[OctoPlamTree] Failed to inject main world hook:", e);
     }
   }
 
-  // Inject immediately on document start
   injectMainWorldScript();
 
-  // 2. Listen for custom events dispatched by the MAIN world hook script (inject.js)
+  // 2. Listen for security events from the MAIN world hook (inject.js)
   window.addEventListener("OctoSecurityEvent", function(event) {
     const { action, payload } = event.detail || {};
 
     if (action === "log_connection") {
-      // Pass to content-script interceptor to check against blacklists
       if (window.OctoApiInterceptor) {
         window.OctoApiInterceptor.processConnection(payload.type, payload.url, payload.method);
+      } else if (window.OctoLogger) {
+        // Fallback: log directly if interceptor isn't available yet
+        window.OctoLogger.logConnection(payload.type, payload.url, payload.method);
       }
     } else if (action === "cookie_access") {
       if (window.OctoSessionMonitor) {
@@ -37,8 +38,8 @@
     }
   });
 
-  // 3. Set up periodic DOM/Script scanning
-  function runDOMThreatScanning() {
+  // 3. DOM + Script threat scanning
+  function runFullScan() {
     if (!window.OctoThreatDetector || !window.OctoLogger) return;
 
     try {
@@ -47,22 +48,26 @@
         window.OctoLogger.log(alert.type, alert.details, alert.severity);
       });
     } catch (e) {
-      console.debug("Error during DOM threat scanning:", e);
+      console.debug("[OctoPlamTree] Scan error:", e);
     }
   }
 
-  // Scan once DOM content is loaded
+  // Run scans when DOM content is loaded and shortly after
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => {
-      runDOMThreatScanning();
-      // Schedule follow-up scan in case scripts load late
-      setTimeout(runDOMThreatScanning, 3000);
+      runFullScan();
+      setTimeout(runFullScan, 2500);
     });
   } else {
-    runDOMThreatScanning();
-    setTimeout(runDOMThreatScanning, 3000);
+    runFullScan();
+    setTimeout(runFullScan, 2500);
   }
 
-  // Periodically re-scan (every 10s) to catch dynamically injected elements
-  setInterval(runDOMThreatScanning, 10000);
+  // Also scan after full page load (images, iframes, etc.)
+  window.addEventListener("load", () => {
+    setTimeout(runFullScan, 1000);
+  });
+
+  // Periodic fallback scan every 15s (MutationObserver in threat-detector handles real-time)
+  setInterval(runFullScan, 15000);
 })();

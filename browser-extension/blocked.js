@@ -1,39 +1,38 @@
-// OctoPlamTree Threat Isolation Warning Controller
+// OctoPlamTree Threat Quarantine Controller
 
 document.addEventListener("DOMContentLoaded", () => {
   const urlEl = document.getElementById("threat-url");
   const reasonEl = document.getElementById("threat-reason");
+  const severityTag = document.getElementById("severity-tag");
   const backBtn = document.getElementById("btn-back");
   const ignoreBtn = document.getElementById("btn-ignore");
 
   // Parse query parameters
   const params = new URLSearchParams(window.location.search);
-  const targetUrl = params.get("url") || "Unknown Source URL";
-  const reason = params.get("reason") || "Suspicious structural anomalies detected by Threat Analyzer Layer.";
+  const targetUrl = params.get("url") || "Unknown URL";
+  const reason = params.get("reason") || "Suspicious structural anomalies detected by the Threat Analysis Engine.";
+  const severity = params.get("severity") || "critical";
 
   urlEl.textContent = targetUrl;
   reasonEl.textContent = reason;
 
-  // Safe action: go back in history, or redirect to home page, or close tab
+  // Update severity display
+  severityTag.textContent = severity.toUpperCase();
+  severityTag.className = `severity-tag ${severity}`;
+
+  // Go back to safety
   backBtn.addEventListener("click", () => {
-    if (window.history.length > 1) {
-      window.history.back();
+    if (window.history.length > 2) {
+      window.history.go(-2); // Go past the blocked URL
     } else {
       window.location.href = "https://www.google.com";
     }
   });
 
-  // Bypass option: redirect to the actual target URL
+  // Bypass warning — navigate to original URL
   ignoreBtn.addEventListener("click", () => {
-    // Disable extension scanning for this tab session temporarily by navigating directly
-    // and appending an ignore query parameter
-    let bypassUrl = targetUrl;
-    try {
-      const parsed = new URL(bypassUrl);
-      parsed.searchParams.set("octo_bypass", "true");
-      bypassUrl = parsed.toString();
-    } catch (e) {}
-    
-    window.location.href = bypassUrl;
+    if (confirm("WARNING: You are about to visit a page flagged as dangerous. OctoPlamTree detected active threats on this URL. Proceed at your own risk?")) {
+      window.location.href = targetUrl;
+    }
   });
 });

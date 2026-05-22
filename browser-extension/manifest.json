@@ -9,7 +9,8 @@
     "webRequest",
     "downloads",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "cookies"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -25,6 +26,7 @@
         "modules/logger.js",
         "modules/threat-detector.js",
         "modules/session-monitor.js",
+        "modules/api-interceptor.js",
         "content.js"
       ],
       "run_at": "document_start",
