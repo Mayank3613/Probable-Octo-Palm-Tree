@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const tabs = document.querySelectorAll(".nav-tab");
   const panels = document.querySelectorAll(".tab-panel");
   const clearLogsBtn = document.getElementById("btn-clear-logs");
+  const exportLogsBtn = document.getElementById("btn-export-logs");
+  const scanNowBtn = document.getElementById("btn-scan-now");
   const filterBtns = document.querySelectorAll(".filter-btn");
 
   const statThreats = document.getElementById("stat-threats");
@@ -36,6 +38,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const settingTelemetry = document.getElementById("setting-telemetry");
 
   let activeFilter = "all";
+  let lastDataFingerprint = "";
 
   // --- Tab Navigation ---
   tabs.forEach(tab => {
@@ -54,18 +57,50 @@ document.addEventListener("DOMContentLoaded", () => {
       filterBtns.forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       activeFilter = btn.dataset.filter;
+      lastDataFingerprint = "";
       renderDashboard();
     });
   });
 
+  // --- Date Formatting ---
+  function formatTimestamp(isoString) {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return "";
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86400000);
+    const dateDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const timeStr = `${hours}:${minutes}`;
+
+    if (dateDay.getTime() === today.getTime()) {
+      return `Today ${timeStr}`;
+    }
+    if (dateDay.getTime() === yesterday.getTime()) {
+      return `Yesterday ${timeStr}`;
+    }
+
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return `${months[date.getMonth()]} ${date.getDate()} ${timeStr}`;
+  }
+
   // --- Scan Current Page ---
   function scanCurrentPage() {
+    if (!chrome || !chrome.tabs) return;
+
     chrome.tabs.query({ active: true, currentWindow: true }, (tabList) => {
-      if (!tabList || tabList.length === 0) return;
+      if (chrome.runtime.lastError || !tabList || tabList.length === 0) return;
       const currentTab = tabList[0];
+      if (!currentTab) return;
       const url = currentTab.url || "";
 
-      riskUrl.textContent = truncateUrl(url, 55);
+      if (!riskUrl || !riskIndicator || !riskScoreBadge || !riskDetail) return;
+
+      riskUrl.textContent = truncateUrl(url, 48);
       riskUrl.title = url;
 
       if (url.startsWith("chrome://") || url.startsWith("chrome-extension://") || url.startsWith("about:")) {
@@ -76,18 +111,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      // Show loading shimmer
+      riskIndicator.classList.add("loading");
+
       // Ask background to analyze
       chrome.runtime.sendMessage({ action: "scan_current_url", url: url }, (analysis) => {
+        riskIndicator.classList.remove("loading");
+
         if (chrome.runtime.lastError || !analysis) {
           riskDetail.textContent = "Unable to analyze this page.";
           return;
         }
 
-        if (analysis.score >= 70) {
+        if (analysis.score !== undefined && analysis.score !== null && analysis.score >= 70) {
           riskIndicator.className = "risk-indicator critical";
           riskScoreBadge.textContent = `RISK: ${analysis.score}`;
           riskScoreBadge.className = "risk-score critical";
-        } else if (analysis.score >= 35) {
+        } else if (analysis.score !== undefined && analysis.score !== null && analysis.score >= 35) {
           riskIndicator.className = "risk-indicator warning";
           riskScoreBadge.textContent = `RISK: ${analysis.score}`;
           riskScoreBadge.className = "risk-score warning";
@@ -102,39 +142,97 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // --- Scan Now Button ---
+  if (scanNowBtn) {
+    scanNowBtn.addEventListener("click", () => {
+      scanNowBtn.classList.add("scanning");
+      scanNowBtn.textContent = "Scanning";
+      scanCurrentPage();
+      setTimeout(() => {
+        scanNowBtn.classList.remove("scanning");
+        scanNowBtn.textContent = "Scan Now";
+      }, 1200);
+    });
+  }
+
+  // --- Export Logs ---
+  function exportLogsAsJSON() {
+    chrome.storage.local.get(["threatLogs"], (result) => {
+      if (chrome.runtime.lastError) return;
+      const logs = result.threatLogs || [];
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        extension: "OctoPlamTree",
+        version: "1.0.0",
+        total_entries: logs.length,
+        threat_logs: logs
+      };
+
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `octoplamtree-logs-${Date.now()}.json`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  if (exportLogsBtn) {
+    exportLogsBtn.addEventListener("click", exportLogsAsJSON);
+  }
+
   // --- Main Render ---
   function renderDashboard() {
     chrome.storage.local.get(["threatLogs", "connections", "settings", "stats"], (result) => {
+      if (chrome.runtime.lastError) return;
+
       const logs = result.threatLogs || [];
       const conns = result.connections || [];
       const settings = result.settings || {};
       const stats = result.stats || {};
 
+      // Smart change detection: skip re-render if data hasn't changed
+      const fingerprint = String(logs.length) + ":" + String(conns.length) + ":" +
+        String(stats.critical || 0) + ":" + String(stats.high || 0) + ":" +
+        String(stats.medium || 0) + ":" + String(stats.sessionsBlocked || 0) + ":" +
+        String(settings.enableUrlMonitoring) + ":" + String(settings.enableDomMonitoring) + ":" +
+        String(settings.enableDownloadScanning) + ":" + String(settings.enableSelfHealing) + ":" +
+        String(settings.enableTelemetry) + ":" + activeFilter;
+
+      if (fingerprint === lastDataFingerprint) return;
+      lastDataFingerprint = fingerprint;
+
       // Stats
-      statThreats.textContent = logs.length;
-      threatBadge.textContent = logs.length;
-      statConns.textContent = conns.length;
-      statCritical.textContent = stats.critical || 0;
-      statHigh.textContent = stats.high || 0;
-      statMedium.textContent = stats.medium || 0;
-      statBlocked.textContent = stats.sessionsBlocked || 0;
+      if (statThreats) statThreats.textContent = logs.length;
+      if (threatBadge) threatBadge.textContent = logs.length;
+      if (statConns) statConns.textContent = conns.length;
+      if (statCritical) statCritical.textContent = stats.critical || 0;
+      if (statHigh) statHigh.textContent = stats.high || 0;
+      if (statMedium) statMedium.textContent = stats.medium || 0;
+      if (statBlocked) statBlocked.textContent = stats.sessionsBlocked || 0;
 
       // System status
       const criticalThreats = logs.filter(l => l.severity === "critical" || l.severity === "high");
-      if (criticalThreats.length > 0) {
-        sysStatus.className = "sys-status-badge danger";
-        sysStatusText.textContent = "THREAT DETECTED";
-      } else {
-        sysStatus.className = "sys-status-badge";
-        sysStatusText.textContent = "SECURE";
+      if (sysStatus && sysStatusText) {
+        if (criticalThreats.length > 0) {
+          sysStatus.className = "sys-status-badge danger";
+          sysStatusText.textContent = "THREAT DETECTED";
+        } else {
+          sysStatus.className = "sys-status-badge";
+          sysStatusText.textContent = "SECURE";
+        }
       }
 
-      // Settings
-      settingUrl.checked = settings.enableUrlMonitoring !== false;
-      settingDom.checked = settings.enableDomMonitoring !== false;
-      settingDownloads.checked = settings.enableDownloadScanning !== false;
-      settingHealing.checked = settings.enableSelfHealing !== false;
-      settingTelemetry.checked = settings.enableTelemetry !== false;
+      // Settings — only update if not focused (prevents flicker while interacting)
+      const activeEl = document.activeElement;
+      if (settingUrl && activeEl !== settingUrl) settingUrl.checked = settings.enableUrlMonitoring !== false;
+      if (settingDom && activeEl !== settingDom) settingDom.checked = settings.enableDomMonitoring !== false;
+      if (settingDownloads && activeEl !== settingDownloads) settingDownloads.checked = settings.enableDownloadScanning !== false;
+      if (settingHealing && activeEl !== settingHealing) settingHealing.checked = settings.enableSelfHealing !== false;
+      if (settingTelemetry && activeEl !== settingTelemetry) settingTelemetry.checked = settings.enableTelemetry !== false;
 
       // --- Filter logs ---
       const filtered = activeFilter === "all"
@@ -142,93 +240,113 @@ document.addEventListener("DOMContentLoaded", () => {
         : logs.filter(l => l.severity === activeFilter);
 
       // Render threats
-      if (filtered.length === 0) {
-        logsContainer.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">🛡️</div>
-            <div>${activeFilter === "all" ? "No threats detected yet" : `No ${activeFilter} severity threats`}</div>
-          </div>`;
-      } else {
-        logsContainer.innerHTML = filtered.map(log => {
-          const time = new Date(log.timestamp).toLocaleTimeString();
-          const scoreTag = log.risk_score ? `<span class="log-score">${log.risk_score}</span>` : "";
-          return `
-            <div class="log-item ${log.severity || 'medium'}">
-              <div class="log-header">
-                <span class="log-title">${escapeHTML(log.threat_type)}</span>
-                <span class="log-time">${scoreTag} ${time}</span>
-              </div>
-              <div class="log-body">${escapeHTML(log.details)}</div>
-              <div class="log-url">${escapeHTML(log.url)}</div>
+      if (logsContainer) {
+        if (filtered.length === 0) {
+          logsContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">🛡️</div>
+              <div>${activeFilter === "all" ? "No threats detected yet" : `No ${activeFilter} severity threats`}</div>
             </div>`;
-        }).join("");
+        } else {
+          logsContainer.innerHTML = filtered.map(log => {
+            const time = formatTimestamp(log.timestamp);
+            const scoreTag = log.risk_score ? `<span class="log-score">${log.risk_score}</span>` : "";
+            const severityPill = log.severity ? `<span class="severity-pill ${log.severity}">${log.severity}</span>` : "";
+            return `
+              <div class="log-item ${log.severity || 'medium'}">
+                <div class="log-header">
+                  <span class="log-title">${escapeHTML(log.threat_type)} ${severityPill}</span>
+                  <span class="log-time">${scoreTag} ${time}</span>
+                </div>
+                <div class="log-body">${escapeHTML(log.details)}</div>
+                <div class="log-url">${escapeHTML(log.url)}</div>
+              </div>`;
+          }).join("");
+        }
       }
 
       // Last event in overview
-      if (logs.length === 0) {
-        lastEventContainer.innerHTML = `<div class="empty-state">No threats detected on current workspace</div>`;
-      } else {
-        const newest = logs[0];
-        const newestTime = new Date(newest.timestamp).toLocaleTimeString();
-        lastEventContainer.innerHTML = `
-          <div class="log-item ${newest.severity || 'medium'}" style="margin: 0;">
-            <div class="log-header">
-              <span class="log-title">${escapeHTML(newest.threat_type)}</span>
-              <span class="log-time">${newestTime}</span>
-            </div>
-            <div class="log-body">${escapeHTML(newest.details)}</div>
-            <div class="log-url">${escapeHTML(newest.url)}</div>
-          </div>`;
+      if (lastEventContainer) {
+        if (logs.length === 0) {
+          lastEventContainer.innerHTML = `<div class="empty-state">No threats detected on current workspace</div>`;
+        } else {
+          const newest = logs[0];
+          const newestTime = formatTimestamp(newest.timestamp);
+          const newestPill = newest.severity ? `<span class="severity-pill ${newest.severity}">${newest.severity}</span>` : "";
+          lastEventContainer.innerHTML = `
+            <div class="log-item ${newest.severity || 'medium'}" style="margin: 0;">
+              <div class="log-header">
+                <span class="log-title">${escapeHTML(newest.threat_type)} ${newestPill}</span>
+                <span class="log-time">${newestTime}</span>
+              </div>
+              <div class="log-body">${escapeHTML(newest.details)}</div>
+              <div class="log-url">${escapeHTML(newest.url)}</div>
+            </div>`;
+        }
       }
 
       // Connections
-      if (conns.length === 0) {
-        connsContainer.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-state-icon">📡</div>
-            <div>No network telemetry intercepted yet</div>
-          </div>`;
-      } else {
-        connsContainer.innerHTML = conns.map(conn => {
-          const time = new Date(conn.timestamp).toLocaleTimeString();
-          const tag = conn.type === "websocket" ? "WS" : conn.method || "GET";
-          const cls = conn.type === "websocket" ? "ws" : conn.type === "xhr" ? "xhr" : "";
-          return `
-            <div class="conn-item">
-              <span class="conn-tag ${cls}">${escapeHTML(tag)}</span>
-              <span class="conn-url" title="${escapeHTML(conn.url)}">${escapeHTML(conn.url)}</span>
-              <span class="conn-time">${time}</span>
+      if (connsContainer) {
+        if (conns.length === 0) {
+          connsContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📡</div>
+              <div>No network telemetry intercepted yet</div>
             </div>`;
-        }).join("");
+        } else {
+          connsContainer.innerHTML = conns.map(conn => {
+            const time = formatTimestamp(conn.timestamp);
+            const tag = conn.type === "websocket" ? "WS" : conn.method || "GET";
+            const cls = conn.type === "websocket" ? "ws" : conn.type === "xhr" ? "xhr" : "";
+            return `
+              <div class="conn-item">
+                <span class="conn-tag ${cls}">${escapeHTML(tag)}</span>
+                <span class="conn-url" title="${escapeHTML(conn.url)}">${escapeHTML(conn.url)}</span>
+                <span class="conn-time">${time}</span>
+              </div>`;
+          }).join("");
+        }
       }
     });
   }
 
   // --- Settings ---
   function saveSettings() {
-    chrome.storage.local.set({
-      settings: {
-        enableUrlMonitoring: settingUrl.checked,
-        enableDomMonitoring: settingDom.checked,
-        enableDownloadScanning: settingDownloads.checked,
-        enableSelfHealing: settingHealing.checked,
-        enableTelemetry: settingTelemetry.checked
-      }
-    }, renderDashboard);
+    if (!settingUrl || !settingDom || !settingDownloads || !settingHealing || !settingTelemetry) return;
+    const newSettings = {
+      enableUrlMonitoring: settingUrl.checked,
+      enableDomMonitoring: settingDom.checked,
+      enableDownloadScanning: settingDownloads.checked,
+      enableSelfHealing: settingHealing.checked,
+      enableTelemetry: settingTelemetry.checked
+    };
+    lastDataFingerprint = "";
+    chrome.storage.local.set({ settings: newSettings }, renderDashboard);
   }
 
   [settingUrl, settingDom, settingDownloads, settingHealing, settingTelemetry].forEach(el => {
-    el.addEventListener("change", saveSettings);
+    if (el) el.addEventListener("change", saveSettings);
   });
 
-  // --- Clear ---
-  clearLogsBtn.addEventListener("click", () => {
-    chrome.storage.local.set({
-      threatLogs: [],
-      connections: [],
-      stats: { critical: 0, high: 0, medium: 0, total: 0, sessionsBlocked: 0 }
-    }, renderDashboard);
-  });
+  // --- Clear Logs ---
+  if (clearLogsBtn) {
+    clearLogsBtn.addEventListener("click", () => {
+      lastDataFingerprint = "";
+      chrome.storage.local.set({
+        threatLogs: [],
+        connections: [],
+        stats: { critical: 0, high: 0, medium: 0, total: 0, sessionsBlocked: 0 }
+      }, () => {
+        renderDashboard();
+        // Notify background to update badge
+        chrome.runtime.sendMessage({ action: "update_badge" }, () => {
+          if (chrome.runtime.lastError) {
+            // Badge update is best-effort; background will catch up on next cycle
+          }
+        });
+      });
+    });
+  }
 
   // --- Helpers ---
   function escapeHTML(str) {
@@ -238,12 +356,12 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function truncateUrl(url, maxLen) {
-    if (!url || url.length <= maxLen) return url;
+    if (!url || url.length <= maxLen) return url || "";
     return url.substring(0, maxLen) + "…";
   }
 
   // --- Init ---
   scanCurrentPage();
   renderDashboard();
-  setInterval(renderDashboard, 2000);
+  setInterval(renderDashboard, 3000);
 });

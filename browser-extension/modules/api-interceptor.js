@@ -6,13 +6,25 @@
     "malicious-api-example.com",
     "phishing-backend.net",
     "coinhive.com",
-    "cryptoloot.pro"
+    "cryptoloot.pro",
+    "minero.cc",
+    "coin-hive.com",
+    "jsecoin.com",
+    "crypto-loot.com",
+    "webmine.pro",
+    "authedmine.com",
+    "ppoi.org",
+    "crypma.com",
+    "keylogger-cdn.net",
+    "data-exfil.xyz",
+    "stealer-api.ru"
   ];
 
   const ApiInterceptor = {
     isBlocked: function(urlString) {
       try {
-        const url = new URL(urlString);
+        // Use window.location.href as base to resolve relative URLs like "/api/data"
+        const url = new URL(urlString, window.location.href);
         const host = url.hostname.toLowerCase();
         return BLOCKED_DOMAINS.some(domain => host === domain || host.endsWith("." + domain));
       } catch (e) {
@@ -22,16 +34,20 @@
 
     processConnection: function(type, url, method = "") {
       if (this.isBlocked(url)) {
-        window.OctoLogger.log(
-          "Blocked Connection", 
-          `Intercepted ${type.toUpperCase()} request to blacklisted malicious server: ${url}`,
-          "critical"
-        );
+        if (window.OctoLogger) {
+          window.OctoLogger.log(
+            "Blocked Connection",
+            `Intercepted ${type.toUpperCase()} request to blacklisted malicious server: ${url}`,
+            "critical"
+          );
+        }
         return true;
       }
-      
+
       // Log connection standard stats
-      window.OctoLogger.logConnection(type, url, method);
+      if (window.OctoLogger) {
+        window.OctoLogger.logConnection(type, url, method);
+      }
       return false;
     }
   };

@@ -1,20 +1,25 @@
 // OctoPlamTree Background Service Worker (ES6 Module)
 // Orchestrates URL scanning, download monitoring, redirect tracking,
 // self-healing, badge updates, and telemetry sync.
+// NOTE: Requires "alarms" permission in manifest.json for telemetry sync.
 
 import { analyzeURL } from './modules/url-analyzer.js';
 import { scanDownload } from './modules/download-scanner.js';
 
-console.log("[OctoPlamTree] Background service worker online.");
-
 const TELEMETRY_ENDPOINT = "http://localhost:8000/telemetry/upload";
-const TELEMETRY_SYNC_INTERVAL = 30000;
+const TELEMETRY_ALARM_NAME = "octo_telemetry_sync";
+const TELEMETRY_SYNC_PERIOD_MINUTES = 0.5; // 30 seconds
 let telemetryQueue = [];
 
 // Redirect chain tracker — tabId -> [url1, url2, ...]
 const redirectChains = new Map();
-const REDIRECT_CHAIN_MAX = 5; // alert after this many rapid redirects
-const REDIRECT_WINDOW_MS = 8000; // within 8 seconds
+const REDIRECT_CHAIN_MAX = 5;
+const REDIRECT_WINDOW_MS = 8000;
+
+// Rate limiting for saveThreatLog: max 20 threats in a 10-second window
+const THREAT_LOG_RATE_LIMIT = 20;
+const THREAT_LOG_RATE_WINDOW_MS = 10000;
+let threatLogTimestamps = [];
 
 // ========== INITIALIZATION ==========
 
@@ -35,6 +40,17 @@ chrome.runtime.onInstalled.addListener(() => {
       });
     }
   });
+  updateBadge();
+
+  // Create the telemetry sync alarm (replaces setInterval which dies with the service worker)
+  chrome.alarms.create(TELEMETRY_ALARM_NAME, {
+    delayInMinutes: TELEMETRY_SYNC_PERIOD_MINUTES,
+    periodInMinutes: TELEMETRY_SYNC_PERIOD_MINUTES
+  });
+});
+
+// Persist badge across browser restarts
+chrome.runtime.onStartup.addListener(() => {
   updateBadge();
 });
 
@@ -60,6 +76,15 @@ function updateBadge() {
 // ========== THREAT LOGGING ==========
 
 function saveThreatLog(logEntry) {
+  // Rate limiting: reject if more than THREAT_LOG_RATE_LIMIT calls in the last THREAT_LOG_RATE_WINDOW_MS
+  const now = Date.now();
+  threatLogTimestamps = threatLogTimestamps.filter(t => (now - t) < THREAT_LOG_RATE_WINDOW_MS);
+  if (threatLogTimestamps.length >= THREAT_LOG_RATE_LIMIT) {
+    console.warn("[OctoPlamTree] Threat log rate limit reached, throttling.");
+    return;
+  }
+  threatLogTimestamps.push(now);
+
   chrome.storage.local.get(["threatLogs", "settings", "stats"], (result) => {
     const logs = result.threatLogs || [];
     const settings = result.settings || {};
@@ -130,29 +155,30 @@ function quarantineThreat(logEntry) {
           const cookieUrl = `${protocol}//${cookie.domain}${cookie.path}`;
           chrome.cookies.remove({ url: cookieUrl, name: cookie.name });
         });
-        console.log(`[Self-Healing] Purged ${cookies.length} cookies for ${domain}`);
       }
     });
 
-    // 2. Clear localStorage and sessionStorage for quarantined domain via scripting
+    // 2. Clear localStorage/sessionStorage, THEN redirect to quarantine page
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach(tab => {
         if (tab.url && tab.url.includes(domain) && tab.id) {
-          // Inject session invalidation script before redirecting
+          const blockUrl = chrome.runtime.getURL(
+            `blocked.html?url=${encodeURIComponent(tab.url)}&reason=${encodeURIComponent(logEntry.details)}&severity=${logEntry.severity}`
+          );
+
+          // Chain: execute storage clearing script first, THEN redirect
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: () => {
               try { localStorage.clear(); } catch (e) {}
               try { sessionStorage.clear(); } catch (e) {}
             }
-          }).catch(() => {});
-
-          // Redirect to quarantine page
-          const blockUrl = chrome.runtime.getURL(
-            `blocked.html?url=${encodeURIComponent(tab.url)}&reason=${encodeURIComponent(logEntry.details)}&severity=${logEntry.severity}`
-          );
-          chrome.tabs.update(tab.id, { url: blockUrl });
-          console.warn(`[Self-Healing] Quarantined tab: ${tab.url}`);
+          }).then(() => {
+            chrome.tabs.update(tab.id, { url: blockUrl });
+          }).catch(() => {
+            // Script injection may fail (e.g., chrome:// pages), still redirect
+            chrome.tabs.update(tab.id, { url: blockUrl });
+          });
         }
       });
     });
@@ -185,14 +211,12 @@ async function syncTelemetry() {
     telemetryQueue = [];
 
     try {
-      console.log(`[Telemetry] Syncing ${payload.length} events...`);
       const response = await fetch(TELEMETRY_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ events: payload })
       });
       if (!response.ok) throw new Error(`Status ${response.status}`);
-      console.log("[Telemetry] Sync complete.");
     } catch (err) {
       console.warn("[Telemetry] Sync failed, re-queuing:", err.message);
       telemetryQueue = [...payload, ...telemetryQueue].slice(0, 500);
@@ -200,25 +224,35 @@ async function syncTelemetry() {
   });
 }
 
-setInterval(syncTelemetry, TELEMETRY_SYNC_INTERVAL);
+// Use chrome.alarms instead of setInterval for telemetry sync
+// (setInterval is unreliable in MV3 service workers that go idle)
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === TELEMETRY_ALARM_NAME) {
+    syncTelemetry();
+  }
+});
 
 // ========== MESSAGE BRIDGE ==========
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "log_threat") {
     saveThreatLog(message.payload);
+    // No async response needed, do not return true
   } else if (message.action === "log_connection") {
     saveConnectionLog(message.payload);
+    // No async response needed, do not return true
   } else if (message.action === "get_stats") {
     chrome.storage.local.get(["stats"], (result) => {
       sendResponse(result.stats || {});
     });
-    return true; // async response
+    return true; // async response: keep the message channel open
   } else if (message.action === "scan_current_url") {
     // On-demand URL scan from popup
     const analysis = analyzeURL(message.url);
     sendResponse(analysis);
     return true;
+  } else if (message.action === "update_badge") {
+    updateBadge();
   }
   return true;
 });

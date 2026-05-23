@@ -10,7 +10,8 @@
     "downloads",
     "scripting",
     "activeTab",
-    "cookies"
+    "cookies",
+    "alarms"
   ],
   "host_permissions": [
     "<all_urls>"

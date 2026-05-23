@@ -6,34 +6,47 @@
   if (window.__octo_injected) return;
   window.__octo_injected = true;
 
-  console.log("[OctoPlamTree] Security API hooks injected successfully.");
-
-  // Helper to send events to content.js
+  // Helper to send events to content.js (wrapped in try-catch for destroyed contexts)
   function dispatchSecurityEvent(action, payload) {
-    const event = new CustomEvent("OctoSecurityEvent", {
-      detail: { action, payload }
-    });
-    window.dispatchEvent(event);
+    try {
+      const event = new CustomEvent("OctoSecurityEvent", {
+        detail: { action, payload }
+      });
+      window.dispatchEvent(event);
+    } catch (e) {
+      // Content script context may already be destroyed; silently ignore
+    }
   }
 
   // --- 1. Intercept Fetch ---
   const originalFetch = window.fetch;
   window.fetch = async function(...args) {
-    const url = args[0];
+    const input = args[0];
     const options = args[1] || {};
-    const method = options.method || "GET";
 
-    if (url) {
-      let resolvedUrl = "";
+    if (input) {
       try {
-        resolvedUrl = typeof url === "string" ? url : (url.url || url.toString());
+        let resolvedUrl = "";
+        let method = "GET";
+
+        if (typeof input === "string") {
+          resolvedUrl = input;
+          method = options.method || "GET";
+        } else if (input instanceof Request) {
+          resolvedUrl = input.url;
+          method = input.method || options.method || "GET";
+        } else {
+          resolvedUrl = input.toString();
+          method = options.method || "GET";
+        }
+
         dispatchSecurityEvent("log_connection", {
           type: "fetch",
           url: resolvedUrl,
           method: method
         });
       } catch (e) {
-        console.debug("Error logging fetch URL", e);
+        // Silently ignore logging errors to avoid breaking page functionality
       }
     }
 
@@ -45,7 +58,7 @@
   XMLHttpRequest.prototype.open = function(method, url, ...args) {
     this._url = url;
     this._method = method;
-    
+
     if (url) {
       dispatchSecurityEvent("log_connection", {
         type: "xhr",
@@ -57,39 +70,49 @@
   };
 
   // --- 3. Intercept WebSockets ---
+  // Use a Proxy to properly handle the `new` keyword, instanceof checks, and static properties
   const OriginalWebSocket = window.WebSocket;
-  window.WebSocket = function(url, protocols) {
-    let wsInstance;
-    if (protocols) {
-      wsInstance = new OriginalWebSocket(url, protocols);
-    } else {
-      wsInstance = new OriginalWebSocket(url);
+  window.WebSocket = new Proxy(OriginalWebSocket, {
+    construct(target, args) {
+      const [url, protocols] = args;
+
+      dispatchSecurityEvent("log_connection", {
+        type: "websocket",
+        url: url,
+        method: "WS"
+      });
+
+      // Properly construct the real WebSocket using Reflect.construct
+      return Reflect.construct(target, args);
+    },
+    get(target, prop, receiver) {
+      // Forward static property access (e.g., WebSocket.OPEN, WebSocket.CLOSED) to the original
+      return Reflect.get(target, prop, receiver);
     }
-
-    dispatchSecurityEvent("log_connection", {
-      type: "websocket",
-      url: url,
-      method: "WS"
-    });
-
-    return wsInstance;
-  };
-  // Maintain prototype properties
-  window.WebSocket.prototype = OriginalWebSocket.prototype;
+  });
 
   // --- 4. Intercept Document.Cookie Getter/Setter ---
   try {
-    const cookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "cookie") || 
+    const cookieDescriptor = Object.getOwnPropertyDescriptor(Document.prototype, "cookie") ||
                              Object.getOwnPropertyDescriptor(HTMLDocument.prototype, "cookie");
 
     if (cookieDescriptor && cookieDescriptor.configurable) {
+      // Debounce cookie read events: fire at most once every 2 seconds
+      let lastCookieReadDispatch = 0;
+      const COOKIE_READ_DEBOUNCE_MS = 2000;
+
       Object.defineProperty(document, "cookie", {
         get: function() {
           const val = cookieDescriptor.get.call(document);
-          dispatchSecurityEvent("cookie_access", { type: "read", value: val });
+          const now = Date.now();
+          if ((now - lastCookieReadDispatch) >= COOKIE_READ_DEBOUNCE_MS) {
+            lastCookieReadDispatch = now;
+            dispatchSecurityEvent("cookie_access", { type: "read", value: val });
+          }
           return val;
         },
         set: function(val) {
+          // Always dispatch cookie writes (they are infrequent and security-relevant)
           dispatchSecurityEvent("cookie_access", { type: "write", value: val });
           cookieDescriptor.set.call(document, val);
         },
@@ -98,6 +121,6 @@
       });
     }
   } catch (e) {
-    console.debug("Failed to hook document.cookie descriptor:", e);
+    // Failed to hook document.cookie descriptor; non-fatal
   }
 })();
