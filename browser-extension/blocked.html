@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>OctoPlamTree — Threat Quarantine</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+    :root {
+      --bg-primary: #090c15;
+      --bg-card: rgba(17, 24, 39, 0.75);
+      --border-color: rgba(239, 68, 68, 0.3);
+      --text-primary: #ffffff;
+      --text-secondary: #9ca3af;
+      --accent-danger: #ef4444;
+      --accent-glow: rgba(239, 68, 68, 0.3);
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      margin: 0; padding: 0;
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; overflow: hidden;
+      background-image: radial-gradient(circle at center, #1b1625 0%, #090c15 100%);
+    }
+    .warning-container {
+      width: 90%; max-width: 560px; padding: 36px;
+      border: 1px solid var(--border-color); border-radius: 16px;
+      background-color: var(--bg-card);
+      box-shadow: 0 10px 50px var(--accent-glow);
+      backdrop-filter: blur(12px); text-align: center;
+      animation: alert-shake 0.5s ease-in-out;
+    }
+    @keyframes alert-shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
+    }
+    .shield-icon {
+      font-size: 50px; color: var(--accent-danger); margin-bottom: 18px;
+      animation: pulse-ring 2s infinite;
+    }
+    @keyframes pulse-ring {
+      0% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.4)); }
+      50% { filter: drop-shadow(0 0 20px rgba(239,68,68,0.8)); }
+      100% { filter: drop-shadow(0 0 5px rgba(239,68,68,0.4)); }
+    }
+    h1 { font-size: 22px; margin: 0 0 8px; font-weight: 700; letter-spacing: 0.3px; }
+    .subtitle { color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin: 0 0 24px; }
+    .severity-tag {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; margin-bottom: 18px;
+    }
+    .severity-tag.critical { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+    .severity-tag.high { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+    .details-box {
+      background-color: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 16px; text-align: left; margin-bottom: 24px;
+    }
+    .detail-row { margin-bottom: 12px; }
+    .detail-row:last-child { margin-bottom: 0; }
+    .label {
+      color: var(--accent-danger); font-weight: 600; text-transform: uppercase;
+      font-size: 10px; letter-spacing: 0.5px; display: block; margin-bottom: 4px;
+    }
+    .value { color: #d1d5db; font-family: var(--font-mono); font-size: 12px; word-break: break-all; line-height: 1.5; }
+    .actions { display: flex; justify-content: center; gap: 14px; }
+    .btn {
+      padding: 11px 22px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-primary {
+      background-color: var(--accent-danger); border: 1px solid var(--accent-danger);
+      color: white; box-shadow: 0 4px 15px rgba(239,68,68,0.3);
+    }
+    .btn-primary:hover { background-color: #dc2626; transform: translateY(-2px); }
+    .btn-secondary {
+      background: transparent; border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary);
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.25); color: var(--text-primary); transform: translateY(-2px); }
+    .healed-info {
+      margin-top: 20px; font-size: 11px; color: var(--text-secondary);
+      border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px; line-height: 1.5;
+    }
+    .healed-info strong { color: #10b981; }
+  </style>
+</head>
+<body>
+  <div class="warning-container">
+    <div class="shield-icon">🛡️</div>
+    <h1>Threat Quarantined</h1>
+    <div id="severity-tag" class="severity-tag critical">CRITICAL</div>
+    <p class="subtitle">OctoPlamTree automatically quarantined this page because it matched known threat signatures or exhibited suspicious behavior patterns.</p>
+    
+    <div class="details-box">
+      <div class="detail-row">
+        <span class="label">Blocked URL</span>
+        <span id="threat-url" class="value">—</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Threat Attribution</span>
+        <span id="threat-reason" class="value">—</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="btn-back" class="btn btn-primary">Go Back to Safety</button>
+      <button id="btn-ignore" class="btn btn-secondary">Bypass Warning</button>
+    </div>
+
+    <div class="healed-info">
+      <strong>Self-Healing Actions Taken:</strong><br>
+      ✓ Session cookies purged for this domain<br>
+      ✓ Local and session storage cleared<br>
+      ✓ Tab redirected to quarantine zone
+    </div>
+  </div>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

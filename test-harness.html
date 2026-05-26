@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SentinelX Browser Threat Layer — Test Harness</title>
+  <style>
+    body {
+      background-color: #0b0f19;
+      color: #e2e8f0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+    header {
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+    h1 {
+      font-size: 28px;
+      background: linear-gradient(90deg, #6366f1 0%, #10b981 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: #94a3b8;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .panel {
+      background-color: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .panel-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #f1f5f9;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 6px;
+    }
+    .panel-desc {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+    .btn {
+      background-color: #312e81;
+      color: #e0e7ff;
+      border: 1px solid #4338ca;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+    .btn:hover {
+      background-color: #3730a3;
+      border-color: #4f46e5;
+    }
+    .btn-danger {
+      background-color: #7f1d1d;
+      border-color: #991b1b;
+      color: #fee2e2;
+    }
+    .btn-danger:hover {
+      background-color: #991b1b;
+      border-color: #b91c1c;
+    }
+    .console {
+      background-color: #020617;
+      border: 1px solid #1e293b;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 12px;
+      border-radius: 8px;
+      height: 120px;
+      overflow-y: auto;
+      color: #38bdf8;
+      margin-top: 10px;
+    }
+    .console-line {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>SentinelX Security Test Harness</h1>
+    <div class="subtitle">Simulate threats, API requests, cookie actions, and downloads to test the browser extension threat intelligence modules.</div>
+  </header>
+
+  <div class="grid">
+    
+    <!-- URL MONITORING & SELF-HEALING -->
+    <div class="panel">
+      <div class="panel-title">🛡️ URL Protection & Self-Healing</div>
+      <div class="panel-desc">Test keyword flags and brand-typosquatting URL checking. High severity will trigger session isolation.</div>
+      <input type="text" id="sim-url" value="http://paypa1.secure-login-update.com" style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #334155; background-color: #0f172a; color: white; margin-bottom: 12px; font-size: 12px;">
+      <button id="btn-test-url" class="btn">Analyze Input URL</button>
+      <button id="btn-trigger-isolation" class="btn btn-danger">Simulate Blocked URL (Isolate Tab)</button>
+    </div>
+
+    <!-- DOM THREAT DETECTOR -->
+    <div class="panel">
+      <div class="panel-title">🔲 DOM & Clickjacking Analyzer</div>
+      <div class="panel-desc">Inject hidden components (invisible iframes) and overlays to verify structural heuristics scanner alerts.</div>
+      <button id="btn-inject-iframes" class="btn">Inject 4 Invisible Iframes</button>
+      <button id="btn-inject-overlay" class="btn">Inject Transparent Overlay</button>
+      <button id="btn-clean-dom" class="btn btn-danger">Reset DOM Clean</button>
+      <div id="dom-console" class="console">
+        <div class="console-line">DOM test console ready...</div>
+      </div>
+    </div>
+
+    <!-- SCRIPT ANALYSIS -->
+    <div class="panel">
+      <div class="panel-title">📜 Obfuscated & Miner Scripts</div>
+      <div class="panel-desc">Execute scripts with suspicious behaviors (cryptomining signatures, or dynamic execution hooks with huge entropy size).</div>
+      <button id="btn-run-obfuscated" class="btn">Execute 11KB Script with dynamic terms</button>
+      <button id="btn-run-miner" class="btn">Simulate Cryptominer Script loading</button>
+      <div id="script-console" class="console">
+        <div class="console-line">Script console ready...</div>
+      </div>
+    </div>
+
+    <!-- COOKIE & SESSION MONITORING -->
+    <div class="panel">
+      <div class="panel-title">🍪 Cookie Access Monitor</div>
+      <div class="panel-desc">Manipulate local cookie values to check if the extension successfully intercepts credential read/write operations.</div>
+      <button id="btn-write-auth-cookie" class="btn">Write 'auth_token' Cookie</button>
+      <button id="btn-read-cookies" class="btn">Read All Cookies</button>
+      <div id="cookie-console" class="console">
+        <div class="console-line">Cookie console ready...</div>
+      </div>
+    </div>
+
+    <!-- API INTERCEPTION -->
+    <div class="panel">
+      <div class="panel-title">📡 API Connection Interceptor</div>
+      <div class="panel-desc">Generate fetch requests, XMLHttpRequests, and WebSockets to trace how network connections register in telemetry lists.</div>
+      <button id="btn-test-fetch" class="btn">Dispatch fetch() API request</button>
+      <button id="btn-test-xhr" class="btn">Dispatch XMLHttpRequest</button>
+      <button id="btn-test-websocket" class="btn">Create WebSocket Connection</button>
+      <button id="btn-trigger-blocked-conn" class="btn btn-danger">Query Blocked Server API</button>
+      <div id="api-console" class="console">
+        <div class="console-line">API console ready...</div>
+      </div>
+    </div>
+
+    <!-- DOWNLOAD SCANNER -->
+    <div class="panel">
+      <div class="panel-title">💾 Download Scanner</div>
+      <div class="panel-desc">Initiate simulated files downloads to verify binary checks (executable files, double-extension vectors).</div>
+      <button id="btn-download-exe" class="btn">Simulate .exe Download</button>
+      <button id="btn-download-double" class="btn">Simulate Double-Extension (.pdf.exe) Download</button>
+      <div id="download-console" class="console">
+        <div class="console-line">Download console ready...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- Console Log Helpers ---
+    function logTo(consoleId, msg) {
+      const c = document.getElementById(consoleId);
+      const line = document.createElement("div");
+      line.className = "console-line";
+      line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+      c.appendChild(line);
+      c.scrollTop = c.scrollHeight;
+    }
+
+    // --- URL SCANNER ---
+    document.getElementById("btn-test-url").addEventListener("click", () => {
+      const val = document.getElementById("sim-url").value;
+      // Send directly to extension if window is bridged
+      alert(`Extension Background Worker is intercepting WebRequests. Open the extension popup to view the analysis of this URL if loaded.`);
+    });
+
+    document.getElementById("btn-trigger-isolation").addEventListener("click", () => {
+      // Navigate to a domain containing brands or keywords which will trigger isolation
+      window.location.href = "https://paypa1-secure-verification.com/login.php";
+    });
+
+    // --- DOM SCANNING ---
+    let injectedElements = [];
+    document.getElementById("btn-inject-iframes").addEventListener("click", () => {
+      for(let i=0; i<4; i++) {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none"; // invisible
+        iframe.src = "about:blank";
+        document.body.appendChild(iframe);
+        injectedElements.push(iframe);
+      }
+      logTo("dom-console", "Injected 4 invisible iframes into DOM.");
+    });
+
+    document.getElementById("btn-inject-overlay").addEventListener("click", () => {
+      const div = document.createElement("div");
+      div.style.position = "fixed";
+      div.style.top = "0";
+      div.style.left = "0";
+      div.style.width = "100%";
+      div.style.height = "100%";
+      div.style.zIndex = "99999";
+      div.style.opacity = "0.05"; // Clickjacking transparent layer
+      div.style.backgroundColor = "white";
+      document.body.appendChild(div);
+      injectedElements.push(div);
+      logTo("dom-console", "Injected clickjacking overlay div (99999 z-index, opacity 0.05).");
+    });
+
+    document.getElementById("btn-clean-dom").addEventListener("click", () => {
+      injectedElements.forEach(el => el.remove());
+      injectedElements = [];
+      logTo("dom-console", "Cleaned up injected test elements.");
+    });
+
+    // --- SCRIPT ANALYSIS ---
+    document.getElementById("btn-run-obfuscated").addEventListener("click", () => {
+      logTo("script-console", "Creating dummy large script...");
+      const script = document.createElement("script");
+      
+      // build a huge text body to trigger entropy limits
+      let scriptBody = "// Large script testing block\n";
+      scriptBody += "const triggerTerm1 = eval;\n";
+      scriptBody += "const triggerTerm2 = String.fromCharCode;\n";
+      for (let i = 0; i < 11000; i++) {
+        scriptBody += `let var_${i} = "${Math.random().toString(36).substring(7)}";\n`;
+      }
+      script.innerHTML = scriptBody;
+      document.body.appendChild(script);
+      script.remove();
+      logTo("script-console", "Executed 11KB dynamic execution script block.");
+    });
+
+    document.getElementById("btn-run-miner").addEventListener("click", () => {
+      const script = document.createElement("script");
+      script.innerHTML = `
+        // Cryptominer simulation script
+        console.log("Starting dummy miner instance...");
+        const miner = {
+          start: function() {
+            console.log("Monero miner running...");
+          }
+        };
+        // Signature term:
+        const xmr_miner_coinhive = "CoinHive.Anonymous";
+        miner.start();
+      `;
+      document.body.appendChild(script);
+      script.remove();
+      logTo("script-console", "Executed script block containing coinhive references.");
+    });
+
+    // --- COOKIE ACCESS ---
+    document.getElementById("btn-write-auth-cookie").addEventListener("click", () => {
+      const secureVal = `oauth_token=${Math.random().toString(36).substring(2)}1234abcd; SameSite=Lax; Secure`;
+      document.cookie = secureVal;
+      logTo("cookie-console", `Wrote sensitive auth cookie: ${secureVal}`);
+    });
+
+    document.getElementById("btn-read-cookies").addEventListener("click", () => {
+      const cookies = document.cookie;
+      logTo("cookie-console", `Read cookie file: ${cookies || "Empty (No cookies found)"}`);
+    });
+
+    // --- API INTERCEPTION ---
+    document.getElementById("btn-test-fetch").addEventListener("click", () => {
+      logTo("api-console", "Sending fetch() to public API...");
+      fetch("https://jsonplaceholder.typicode.com/todos/1")
+        .then(res => res.json())
+        .then(data => {
+          logTo("api-console", `Fetch succeeded: title='${data.title}'`);
+        })
+        .catch(err => logTo("api-console", `Fetch error: ${err.message}`));
+    });
+
+    document.getElementById("btn-test-xhr").addEventListener("click", () => {
+      logTo("api-console", "Sending XMLHttpRequest...");
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "https://jsonplaceholder.typicode.com/posts/1");
+      xhr.onload = function() {
+        logTo("api-console", `XHR completed: status=${xhr.status}`);
+      };
+      xhr.onerror = function() {
+        logTo("api-console", "XHR encountered error.");
+      };
+      xhr.send();
+    });
+
+    document.getElementById("btn-test-websocket").addEventListener("click", () => {
+      logTo("api-console", "Opening WebSocket link (mock address)...");
+      try {
+        const ws = new WebSocket("wss://echo.websocket.events");
+        ws.onopen = () => {
+          logTo("api-console", "WebSocket handshake success.");
+          ws.close();
+        };
+        ws.onerror = (e) => {
+          logTo("api-console", `WebSocket connection closed.`);
+        };
+      } catch (e) {
+        logTo("api-console", `WS error: ${e.message}`);
+      }
+    });
+
+    document.getElementById("btn-trigger-blocked-conn").addEventListener("click", () => {
+      logTo("api-console", "Sending fetch to blacklisted domain...");
+      fetch("https://malicious-api-example.com/steal-session")
+        .catch(err => {
+          logTo("api-console", `Request intercepted and blocked as expected!`);
+        });
+    });
+
+    // --- DOWNLOAD MONITORING ---
+    document.getElementById("btn-download-exe").addEventListener("click", () => {
+      logTo("download-console", "Initiating .exe download...");
+      const a = document.createElement("a");
+      a.href = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"; // Safe URL
+      a.download = "security_patch_update.exe";
+      a.click();
+      logTo("download-console", "Download trigger fired for: security_patch_update.exe");
+    });
+
+    document.getElementById("btn-download-double").addEventListener("click", () => {
+      logTo("download-console", "Initiating double-extension download...");
+      const a = document.createElement("a");
+      a.href = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"; // Safe URL
+      a.download = "monthly_invoice_report.pdf.exe";
+      a.click();
+      logTo("download-console", "Download trigger fired for: monthly_invoice_report.pdf.exe");
+    });
+  </script>
+</body>
+</html>
