@@ -4,6 +4,38 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
+## [2026-05-27] Customer-Ready Polish — Everyday Use Improvements
+
+### Added (New Features)
+- **Desktop Notifications** — Chrome OS-level alerts for critical/high threats (30s cooldown to avoid spam)
+- **User Whitelist** — custom trusted domains in Settings → add/remove your own domains
+- **Trust This Site** button on quarantine page — permanently whitelist a domain with one click
+- **Notifications toggle** — enable/disable desktop alerts from Settings
+- **Badge auto-decay** — badge counter only shows threats from the last 1 hour, not forever
+
+### Fixed (Daily Use Issues)
+- **Self-healing was too aggressive** — now only quarantines `critical` threats (previously `high` too, which blocked borderline sites)
+- **Console spam eliminated** — removed `console.log` on every page load, logger only prints `critical` to DevTools
+- **CPU waste fixed** — DOM scanning skips trusted domains entirely (Google, YouTube, Gmail, etc.)
+- **Scan interval reduced** — 30s polling (was 15s) + completely disabled on trusted sites
+- **Telemetry errors silenced** — exponential backoff when backend is offline (no more error every 30s)
+- **Clear logs now requires confirmation** — prevents accidental data loss
+- **Dedup window extended** — 10s (was 5s) to prevent duplicate threat entries
+- **Log capacity increased** — 500 entries (was 300)
+
+### Files Changed
+- `manifest.json` — added `notifications` permission
+- `background.js` — notifications, user whitelist, telemetry backoff, badge decay
+- `content.js` — trusted domain skip, removed console spam, 30s scan interval
+- `popup.html` — notifications toggle, whitelist UI section
+- `popup.js` — whitelist management, notification settings, clear confirm
+- `styles.css` — whitelist input/list/remove styles, settings divider
+- `blocked.html` — Trust This Site button with green styling
+- `blocked.js` — trust button logic (adds domain to whitelist)
+- `modules/logger.js` — only console.warn for critical threats
+
+---
+
 ## [2026-05-27] Phase 2 — Backend API Server
 **Commit:** `3b2ef50`
 

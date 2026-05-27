@@ -81,6 +81,10 @@
       background: transparent; border: 1px solid rgba(255,255,255,0.12); color: var(--text-secondary);
     }
     .btn-secondary:hover { border-color: rgba(255,255,255,0.25); color: var(--text-primary); transform: translateY(-2px); }
+    .btn-trust {
+      background: transparent; border: 1px solid rgba(16, 185, 129, 0.3); color: #10b981;
+    }
+    .btn-trust:hover { border-color: rgba(16, 185, 129, 0.6); background: rgba(16, 185, 129, 0.1); transform: translateY(-2px); }
     .healed-info {
       margin-top: 20px; font-size: 11px; color: var(--text-secondary);
       border-top: 1px solid rgba(255,255,255,0.06); padding-top: 14px; line-height: 1.5;
@@ -108,7 +112,8 @@
 
     <div class="actions">
       <button id="btn-back" class="btn btn-primary">Go Back to Safety</button>
-      <button id="btn-ignore" class="btn btn-secondary">Bypass Warning</button>
+      <button id="btn-trust" class="btn btn-trust">Trust This Site</button>
+      <button id="btn-ignore" class="btn btn-secondary">Bypass Once</button>
     </div>
 
     <div class="healed-info">

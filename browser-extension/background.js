@@ -1,15 +1,18 @@
 // OctoPlamTree Background Service Worker (ES6 Module)
 // Orchestrates URL scanning, download monitoring, redirect tracking,
-// self-healing, badge updates, and telemetry sync.
-// NOTE: Requires "alarms" permission in manifest.json for telemetry sync.
+// self-healing, badge updates, notifications, and telemetry sync.
 
 import { analyzeURL } from './modules/url-analyzer.js';
 import { scanDownload } from './modules/download-scanner.js';
 
 const TELEMETRY_ENDPOINT = "http://localhost:8000/telemetry/upload";
 const TELEMETRY_ALARM_NAME = "octo_telemetry_sync";
-const TELEMETRY_SYNC_PERIOD_MINUTES = 0.5; // 30 seconds
+const BADGE_DECAY_ALARM_NAME = "octo_badge_decay";
+const TELEMETRY_SYNC_PERIOD_MINUTES = 1; // 1 minute
+const BADGE_DECAY_PERIOD_MINUTES = 60;   // Reset badge counts every hour
 let telemetryQueue = [];
+let telemetryBackoff = 0; // Exponential backoff counter for failed syncs
+const TELEMETRY_MAX_BACKOFF = 5; // Max 5 consecutive failures before silencing
 
 // Redirect chain tracker — tabId -> [url1, url2, ...]
 const redirectChains = new Map();
@@ -21,13 +24,18 @@ const THREAT_LOG_RATE_LIMIT = 20;
 const THREAT_LOG_RATE_WINDOW_MS = 10000;
 let threatLogTimestamps = [];
 
+// Notification throttle: max 1 notification per 30 seconds
+let lastNotificationTime = 0;
+const NOTIFICATION_COOLDOWN_MS = 30000;
+
 // ========== INITIALIZATION ==========
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.storage.local.get(["threatLogs", "connections", "settings", "stats"], (result) => {
+  chrome.storage.local.get(["threatLogs", "connections", "settings", "stats", "userWhitelist"], (result) => {
     if (!result.threatLogs) chrome.storage.local.set({ threatLogs: [] });
     if (!result.connections) chrome.storage.local.set({ connections: [] });
     if (!result.stats) chrome.storage.local.set({ stats: { critical: 0, high: 0, medium: 0, total: 0, sessionsBlocked: 0 } });
+    if (!result.userWhitelist) chrome.storage.local.set({ userWhitelist: [] });
     if (!result.settings) {
       chrome.storage.local.set({
         settings: {
@@ -35,17 +43,24 @@ chrome.runtime.onInstalled.addListener(() => {
           enableDomMonitoring: true,
           enableDownloadScanning: true,
           enableSelfHealing: true,
-          enableTelemetry: true
+          enableTelemetry: true,
+          enableNotifications: true
         }
       });
     }
   });
   updateBadge();
 
-  // Create the telemetry sync alarm (replaces setInterval which dies with the service worker)
+  // Telemetry sync alarm
   chrome.alarms.create(TELEMETRY_ALARM_NAME, {
     delayInMinutes: TELEMETRY_SYNC_PERIOD_MINUTES,
     periodInMinutes: TELEMETRY_SYNC_PERIOD_MINUTES
+  });
+
+  // Badge decay alarm — auto-resets badge after 1 hour of no new threats
+  chrome.alarms.create(BADGE_DECAY_ALARM_NAME, {
+    delayInMinutes: BADGE_DECAY_PERIOD_MINUTES,
+    periodInMinutes: BADGE_DECAY_PERIOD_MINUTES
   });
 });
 
@@ -59,13 +74,17 @@ chrome.runtime.onStartup.addListener(() => {
 function updateBadge() {
   chrome.storage.local.get(["threatLogs"], (result) => {
     const logs = result.threatLogs || [];
-    const criticalCount = logs.filter(l => l.severity === "critical" || l.severity === "high").length;
+
+    // Only count recent threats (last 1 hour) for badge
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const recentLogs = logs.filter(l => l.timestamp > oneHourAgo);
+    const criticalCount = recentLogs.filter(l => l.severity === "critical" || l.severity === "high").length;
 
     if (criticalCount > 0) {
       chrome.action.setBadgeText({ text: String(criticalCount) });
       chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
-    } else if (logs.length > 0) {
-      chrome.action.setBadgeText({ text: String(logs.length) });
+    } else if (recentLogs.length > 0) {
+      chrome.action.setBadgeText({ text: String(recentLogs.length) });
       chrome.action.setBadgeBackgroundColor({ color: "#f59e0b" });
     } else {
       chrome.action.setBadgeText({ text: "" });
@@ -73,16 +92,62 @@ function updateBadge() {
   });
 }
 
+// ========== DESKTOP NOTIFICATIONS ==========
+
+function showThreatNotification(logEntry) {
+  const now = Date.now();
+  if ((now - lastNotificationTime) < NOTIFICATION_COOLDOWN_MS) return;
+  lastNotificationTime = now;
+
+  chrome.storage.local.get(["settings"], (result) => {
+    const settings = result.settings || {};
+    if (settings.enableNotifications === false) return;
+
+    const severityEmoji = logEntry.severity === "critical" ? "🔴" : logEntry.severity === "high" ? "🟡" : "🔵";
+    const title = `${severityEmoji} ${logEntry.severity.toUpperCase()} Threat Detected`;
+
+    try {
+      chrome.notifications.create(`octo-threat-${now}`, {
+        type: "basic",
+        iconUrl: "assets/icon128.png",
+        title: title,
+        message: `${logEntry.threat_type}\n${logEntry.details}`.substring(0, 200),
+        priority: logEntry.severity === "critical" ? 2 : 1,
+        requireInteraction: logEntry.severity === "critical"
+      });
+    } catch (e) {
+      // Notifications may fail silently — non-critical
+    }
+  });
+}
+
+// ========== USER WHITELIST ==========
+
+function isUserWhitelisted(url) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(["userWhitelist"], (result) => {
+      const whitelist = result.userWhitelist || [];
+      try {
+        const hostname = new URL(url).hostname.toLowerCase();
+        const isWhitelisted = whitelist.some(d => {
+          const domain = d.toLowerCase();
+          return hostname === domain || hostname.endsWith("." + domain);
+        });
+        resolve(isWhitelisted);
+      } catch (e) {
+        resolve(false);
+      }
+    });
+  });
+}
+
 // ========== THREAT LOGGING ==========
 
 function saveThreatLog(logEntry) {
-  // Rate limiting: reject if more than THREAT_LOG_RATE_LIMIT calls in the last THREAT_LOG_RATE_WINDOW_MS
+  // Rate limiting
   const now = Date.now();
   threatLogTimestamps = threatLogTimestamps.filter(t => (now - t) < THREAT_LOG_RATE_WINDOW_MS);
-  if (threatLogTimestamps.length >= THREAT_LOG_RATE_LIMIT) {
-    console.warn("[OctoPlamTree] Threat log rate limit reached, throttling.");
-    return;
-  }
+  if (threatLogTimestamps.length >= THREAT_LOG_RATE_LIMIT) return;
   threatLogTimestamps.push(now);
 
   chrome.storage.local.get(["threatLogs", "settings", "stats"], (result) => {
@@ -90,16 +155,16 @@ function saveThreatLog(logEntry) {
     const settings = result.settings || {};
     const stats = result.stats || { critical: 0, high: 0, medium: 0, total: 0, sessionsBlocked: 0 };
 
-    // Deduplicate within 5s window
+    // Deduplicate within 10s window (increased from 5s for better dedup)
     const isDuplicate = logs.some(l =>
       l.threat_type === logEntry.threat_type &&
       l.url === logEntry.url &&
-      (new Date(logEntry.timestamp) - new Date(l.timestamp)) < 5000
+      (new Date(logEntry.timestamp) - new Date(l.timestamp)) < 10000
     );
     if (isDuplicate) return;
 
     logs.unshift(logEntry);
-    if (logs.length > 300) logs.length = 300;
+    if (logs.length > 500) logs.length = 500; // Increased from 300
 
     // Update severity stats
     if (logEntry.severity === "critical") stats.critical++;
@@ -108,17 +173,20 @@ function saveThreatLog(logEntry) {
     stats.total++;
 
     chrome.storage.local.set({ threatLogs: logs, stats: stats });
-
-    // Update badge immediately
     updateBadge();
+
+    // Desktop notification for critical/high threats
+    if (logEntry.severity === "critical" || logEntry.severity === "high") {
+      showThreatNotification(logEntry);
+    }
 
     // Queue telemetry
     if (settings.enableTelemetry !== false) {
       telemetryQueue.push(logEntry);
     }
 
-    // Self-healing for critical/high threats
-    if (settings.enableSelfHealing !== false && (logEntry.severity === "critical" || logEntry.severity === "high")) {
+    // Self-healing ONLY for critical threats (not high — too aggressive for daily use)
+    if (settings.enableSelfHealing !== false && logEntry.severity === "critical") {
       quarantineThreat(logEntry);
     }
   });
@@ -143,12 +211,9 @@ function quarantineThreat(logEntry) {
     const parsedUrl = new URL(targetUrl);
     const domain = parsedUrl.hostname;
 
-    // 1. Purge all cookies for the malicious domain
+    // 1. Purge cookies for malicious domain
     chrome.cookies.getAll({ domain: domain }, (cookies) => {
-      if (chrome.runtime.lastError) {
-        console.warn("[Self-Healing] Cookie access error:", chrome.runtime.lastError.message);
-        return;
-      }
+      if (chrome.runtime.lastError) return;
       if (cookies) {
         cookies.forEach(cookie => {
           const protocol = cookie.secure ? "https:" : "http:";
@@ -158,15 +223,13 @@ function quarantineThreat(logEntry) {
       }
     });
 
-    // 2. Clear localStorage/sessionStorage, THEN redirect to quarantine page
+    // 2. Clear storage, then redirect to quarantine
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach(tab => {
         if (tab.url && tab.url.includes(domain) && tab.id) {
           const blockUrl = chrome.runtime.getURL(
             `blocked.html?url=${encodeURIComponent(tab.url)}&reason=${encodeURIComponent(logEntry.details)}&severity=${logEntry.severity}`
           );
-
-          // Chain: execute storage clearing script first, THEN redirect
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
             func: () => {
@@ -176,7 +239,6 @@ function quarantineThreat(logEntry) {
           }).then(() => {
             chrome.tabs.update(tab.id, { url: blockUrl });
           }).catch(() => {
-            // Script injection may fail (e.g., chrome:// pages), still redirect
             chrome.tabs.update(tab.id, { url: blockUrl });
           });
         }
@@ -191,7 +253,7 @@ function quarantineThreat(logEntry) {
     });
 
   } catch (e) {
-    console.error("[Self-Healing] Quarantine error:", e);
+    // Quarantine error — non-fatal
   }
 }
 
@@ -200,10 +262,18 @@ function quarantineThreat(logEntry) {
 async function syncTelemetry() {
   if (telemetryQueue.length === 0) return;
 
+  // Exponential backoff: skip sync if backend is consistently down
+  if (telemetryBackoff >= TELEMETRY_MAX_BACKOFF) {
+    // Try once every 5th alarm to see if backend came back
+    telemetryBackoff++;
+    if (telemetryBackoff % 5 !== 0) return;
+  }
+
   chrome.storage.local.get(["settings"], async (result) => {
     const settings = result.settings || {};
     if (settings.enableTelemetry === false) {
       telemetryQueue = [];
+      telemetryBackoff = 0;
       return;
     }
 
@@ -217,18 +287,25 @@ async function syncTelemetry() {
         body: JSON.stringify({ events: payload })
       });
       if (!response.ok) throw new Error(`Status ${response.status}`);
+      telemetryBackoff = 0; // Reset backoff on success
     } catch (err) {
-      console.warn("[Telemetry] Sync failed, re-queuing:", err.message);
+      // Re-queue on failure, cap at 500 events
       telemetryQueue = [...payload, ...telemetryQueue].slice(0, 500);
+      telemetryBackoff++;
+      // Only warn on first failure, not every 30s
+      if (telemetryBackoff <= 1) {
+        console.warn("[OctoPlamTree] Telemetry sync failed — backend may be offline. Will retry with backoff.");
+      }
     }
   });
 }
 
-// Use chrome.alarms instead of setInterval for telemetry sync
-// (setInterval is unreliable in MV3 service workers that go idle)
+// Alarm handler
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === TELEMETRY_ALARM_NAME) {
     syncTelemetry();
+  } else if (alarm.name === BADGE_DECAY_ALARM_NAME) {
+    updateBadge(); // Refresh badge — old threats will age out
   }
 });
 
@@ -237,22 +314,43 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "log_threat") {
     saveThreatLog(message.payload);
-    // No async response needed, do not return true
   } else if (message.action === "log_connection") {
     saveConnectionLog(message.payload);
-    // No async response needed, do not return true
   } else if (message.action === "get_stats") {
     chrome.storage.local.get(["stats"], (result) => {
       sendResponse(result.stats || {});
     });
-    return true; // async response: keep the message channel open
+    return true;
   } else if (message.action === "scan_current_url") {
-    // On-demand URL scan from popup
     const analysis = analyzeURL(message.url);
     sendResponse(analysis);
     return true;
   } else if (message.action === "update_badge") {
     updateBadge();
+  } else if (message.action === "add_to_whitelist") {
+    chrome.storage.local.get(["userWhitelist"], (result) => {
+      const whitelist = result.userWhitelist || [];
+      const domain = message.domain.toLowerCase();
+      if (!whitelist.includes(domain)) {
+        whitelist.push(domain);
+        chrome.storage.local.set({ userWhitelist: whitelist });
+      }
+      sendResponse({ success: true, whitelist: whitelist });
+    });
+    return true;
+  } else if (message.action === "remove_from_whitelist") {
+    chrome.storage.local.get(["userWhitelist"], (result) => {
+      let whitelist = result.userWhitelist || [];
+      whitelist = whitelist.filter(d => d !== message.domain.toLowerCase());
+      chrome.storage.local.set({ userWhitelist: whitelist });
+      sendResponse({ success: true, whitelist: whitelist });
+    });
+    return true;
+  } else if (message.action === "get_whitelist") {
+    chrome.storage.local.get(["userWhitelist"], (result) => {
+      sendResponse(result.userWhitelist || []);
+    });
+    return true;
   }
   return true;
 });
@@ -263,9 +361,13 @@ chrome.webRequest.onBeforeRequest.addListener(
   (details) => {
     if (details.type !== "main_frame" && details.type !== "sub_frame") return;
 
-    chrome.storage.local.get(["settings"], (result) => {
+    chrome.storage.local.get(["settings"], async (result) => {
       const settings = result.settings || {};
       if (settings.enableUrlMonitoring === false) return;
+
+      // Check user whitelist before analyzing
+      const whitelisted = await isUserWhitelisted(details.url);
+      if (whitelisted) return;
 
       const analysis = analyzeURL(details.url);
       if (analysis.isSuspicious) {
@@ -297,7 +399,6 @@ chrome.webRequest.onBeforeRedirect.addListener(
     }
 
     const chain = redirectChains.get(tabId);
-    // Remove old entries outside the time window
     while (chain.length > 0 && (now - chain[0].time) > REDIRECT_WINDOW_MS) {
       chain.shift();
     }
@@ -314,14 +415,12 @@ chrome.webRequest.onBeforeRedirect.addListener(
         url: details.url,
         risk_score: 75
       });
-      // Clear the chain after alerting
       redirectChains.set(tabId, []);
     }
   },
   { urls: ["<all_urls>"] }
 );
 
-// Clean up redirect chains when tabs are closed
 chrome.tabs.onRemoved.addListener((tabId) => {
   redirectChains.delete(tabId);
 });
@@ -345,4 +444,9 @@ chrome.downloads.onCreated.addListener((downloadItem) => {
       });
     }
   });
+});
+
+// Handle notification clicks — open popup
+chrome.notifications.onClicked.addListener((notificationId) => {
+  chrome.notifications.clear(notificationId);
 });

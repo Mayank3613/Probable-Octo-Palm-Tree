@@ -1,5 +1,6 @@
 // OctoPlamTree Dashboard Controller
-// Manages real-time popup rendering, severity filtering, current-page risk, and settings
+// Manages real-time popup rendering, severity filtering, current-page risk,
+// settings, user whitelist, and notifications
 
 document.addEventListener("DOMContentLoaded", () => {
   // --- UI Elements ---
@@ -36,6 +37,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const settingDownloads = document.getElementById("setting-downloads");
   const settingHealing = document.getElementById("setting-healing");
   const settingTelemetry = document.getElementById("setting-telemetry");
+  const settingNotifications = document.getElementById("setting-notifications");
+
+  // Whitelist
+  const whitelistInput = document.getElementById("whitelist-input");
+  const addWhitelistBtn = document.getElementById("btn-add-whitelist");
+  const whitelistList = document.getElementById("whitelist-list");
 
   let activeFilter = "all";
   let lastDataFingerprint = "";
@@ -77,12 +84,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const minutes = String(date.getMinutes()).padStart(2, "0");
     const timeStr = `${hours}:${minutes}`;
 
-    if (dateDay.getTime() === today.getTime()) {
-      return `Today ${timeStr}`;
-    }
-    if (dateDay.getTime() === yesterday.getTime()) {
-      return `Yesterday ${timeStr}`;
-    }
+    if (dateDay.getTime() === today.getTime()) return `Today ${timeStr}`;
+    if (dateDay.getTime() === yesterday.getTime()) return `Yesterday ${timeStr}`;
 
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     return `${months[date.getMonth()]} ${date.getDate()} ${timeStr}`;
@@ -111,10 +114,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // Show loading shimmer
       riskIndicator.classList.add("loading");
 
-      // Ask background to analyze
       chrome.runtime.sendMessage({ action: "scan_current_url", url: url }, (analysis) => {
         riskIndicator.classList.remove("loading");
 
@@ -184,6 +185,52 @@ document.addEventListener("DOMContentLoaded", () => {
     exportLogsBtn.addEventListener("click", exportLogsAsJSON);
   }
 
+  // --- Whitelist Management ---
+  function loadWhitelist() {
+    if (!whitelistList) return;
+    chrome.runtime.sendMessage({ action: "get_whitelist" }, (whitelist) => {
+      if (chrome.runtime.lastError || !whitelist) {
+        whitelistList.innerHTML = '<div class="whitelist-empty">No custom trusted domains</div>';
+        return;
+      }
+      if (whitelist.length === 0) {
+        whitelistList.innerHTML = '<div class="whitelist-empty">No custom trusted domains</div>';
+        return;
+      }
+      whitelistList.innerHTML = whitelist.map(domain =>
+        `<div class="whitelist-item">
+          <span class="whitelist-domain">${escapeHTML(domain)}</span>
+          <button class="whitelist-remove-btn" data-domain="${escapeHTML(domain)}">✕</button>
+        </div>`
+      ).join("");
+
+      // Attach remove handlers
+      whitelistList.querySelectorAll(".whitelist-remove-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          chrome.runtime.sendMessage({ action: "remove_from_whitelist", domain: btn.dataset.domain }, () => {
+            loadWhitelist();
+          });
+        });
+      });
+    });
+  }
+
+  if (addWhitelistBtn && whitelistInput) {
+    addWhitelistBtn.addEventListener("click", () => {
+      const domain = whitelistInput.value.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      if (!domain || !domain.includes(".")) return;
+      chrome.runtime.sendMessage({ action: "add_to_whitelist", domain: domain }, () => {
+        whitelistInput.value = "";
+        loadWhitelist();
+      });
+    });
+    whitelistInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") addWhitelistBtn.click();
+    });
+  }
+
+  loadWhitelist();
+
   // --- Main Render ---
   function renderDashboard() {
     chrome.storage.local.get(["threatLogs", "connections", "settings", "stats"], (result) => {
@@ -194,13 +241,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const settings = result.settings || {};
       const stats = result.stats || {};
 
-      // Smart change detection: skip re-render if data hasn't changed
+      // Smart change detection
       const fingerprint = String(logs.length) + ":" + String(conns.length) + ":" +
         String(stats.critical || 0) + ":" + String(stats.high || 0) + ":" +
         String(stats.medium || 0) + ":" + String(stats.sessionsBlocked || 0) + ":" +
         String(settings.enableUrlMonitoring) + ":" + String(settings.enableDomMonitoring) + ":" +
         String(settings.enableDownloadScanning) + ":" + String(settings.enableSelfHealing) + ":" +
-        String(settings.enableTelemetry) + ":" + activeFilter;
+        String(settings.enableTelemetry) + ":" + String(settings.enableNotifications) + ":" + activeFilter;
 
       if (fingerprint === lastDataFingerprint) return;
       lastDataFingerprint = fingerprint;
@@ -226,13 +273,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      // Settings — only update if not focused (prevents flicker while interacting)
+      // Settings — only update if not focused
       const activeEl = document.activeElement;
       if (settingUrl && activeEl !== settingUrl) settingUrl.checked = settings.enableUrlMonitoring !== false;
       if (settingDom && activeEl !== settingDom) settingDom.checked = settings.enableDomMonitoring !== false;
       if (settingDownloads && activeEl !== settingDownloads) settingDownloads.checked = settings.enableDownloadScanning !== false;
       if (settingHealing && activeEl !== settingHealing) settingHealing.checked = settings.enableSelfHealing !== false;
       if (settingTelemetry && activeEl !== settingTelemetry) settingTelemetry.checked = settings.enableTelemetry !== false;
+      if (settingNotifications && activeEl !== settingNotifications) settingNotifications.checked = settings.enableNotifications !== false;
 
       // --- Filter logs ---
       const filtered = activeFilter === "all"
@@ -318,19 +366,24 @@ document.addEventListener("DOMContentLoaded", () => {
       enableDomMonitoring: settingDom.checked,
       enableDownloadScanning: settingDownloads.checked,
       enableSelfHealing: settingHealing.checked,
-      enableTelemetry: settingTelemetry.checked
+      enableTelemetry: settingTelemetry.checked,
+      enableNotifications: settingNotifications ? settingNotifications.checked : true
     };
     lastDataFingerprint = "";
     chrome.storage.local.set({ settings: newSettings }, renderDashboard);
   }
 
-  [settingUrl, settingDom, settingDownloads, settingHealing, settingTelemetry].forEach(el => {
+  [settingUrl, settingDom, settingDownloads, settingHealing, settingTelemetry, settingNotifications].forEach(el => {
     if (el) el.addEventListener("change", saveSettings);
   });
 
-  // --- Clear Logs ---
+  // --- Clear Logs (with confirmation) ---
   if (clearLogsBtn) {
     clearLogsBtn.addEventListener("click", () => {
+      // Confirm before deleting all records
+      const confirmed = confirm("Clear all threat logs and connection records? This cannot be undone.");
+      if (!confirmed) return;
+
       lastDataFingerprint = "";
       chrome.storage.local.set({
         threatLogs: [],
@@ -338,11 +391,8 @@ document.addEventListener("DOMContentLoaded", () => {
         stats: { critical: 0, high: 0, medium: 0, total: 0, sessionsBlocked: 0 }
       }, () => {
         renderDashboard();
-        // Notify background to update badge
         chrome.runtime.sendMessage({ action: "update_badge" }, () => {
-          if (chrome.runtime.lastError) {
-            // Badge update is best-effort; background will catch up on next cycle
-          }
+          if (chrome.runtime.lastError) {}
         });
       });
     });

@@ -30,7 +30,10 @@
 
   const logger = {
     log: function(type, details, severity = "medium") {
-      console.warn(`[OctoPlamTree Alert] [${severity.toUpperCase()}] ${type}: ${details}`);
+      // Only show critical threats in console — don't spam DevTools for everyday users
+      if (severity === "critical") {
+        console.warn(`[OctoPlamTree] 🔴 ${type}: ${details}`);
+      }
       safeSendMessage({
         action: "log_threat",
         payload: {

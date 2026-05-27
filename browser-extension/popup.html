@@ -176,6 +176,27 @@
             </label>
           </div>
 
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Desktop Notifications</span>
+              <span class="setting-desc">Show system alerts when critical or high-severity threats are detected</span>
+            </div>
+            <label class="switch" for="setting-notifications">
+              <input type="checkbox" id="setting-notifications" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-divider"></div>
+          <div class="section-heading" style="margin-top: 4px;">Trusted Domains (User Whitelist)</div>
+          <div class="whitelist-section">
+            <div class="whitelist-add">
+              <input type="text" id="whitelist-input" placeholder="example.com" class="whitelist-input">
+              <button id="btn-add-whitelist" class="whitelist-add-btn">+ Add</button>
+            </div>
+            <div id="whitelist-list" class="whitelist-list"></div>
+          </div>
+
         </div>
       </section>
 

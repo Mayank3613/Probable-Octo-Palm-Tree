@@ -2,7 +2,24 @@
 // Orchestrates DOM scanning, hooks MAIN world APIs, and reports to Background
 
 (function() {
-  console.log("[OctoPlamTree] Content script initializing on:", window.location.href);
+  // Trusted domains — skip DOM scanning entirely on these to save CPU
+  const TRUSTED_SCAN_DOMAINS = [
+    "google.com", "youtube.com", "gmail.com", "googleapis.com",
+    "microsoft.com", "live.com", "outlook.com", "office.com", "bing.com",
+    "github.com", "linkedin.com", "apple.com", "icloud.com",
+    "facebook.com", "instagram.com", "whatsapp.com", "meta.com",
+    "amazon.com", "amazonaws.com", "twitter.com", "x.com",
+    "netflix.com", "paypal.com", "yahoo.com", "reddit.com",
+    "discord.com", "spotify.com", "dropbox.com", "zoom.us",
+    "wikipedia.org", "stackoverflow.com", "steampowered.com"
+  ];
+
+  function isOnTrustedDomain() {
+    const hostname = window.location.hostname.toLowerCase();
+    return TRUSTED_SCAN_DOMAINS.some(d => hostname === d || hostname.endsWith("." + d));
+  }
+
+  const onTrustedDomain = isOnTrustedDomain();
 
   // 1. Inject the page-level API hook script (inject.js) into the MAIN world
   function injectMainWorldScript() {
@@ -52,22 +69,23 @@
     }
   }
 
-  // Run scans when DOM content is loaded and shortly after
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
+  // Only run DOM scanning on untrusted domains — saves CPU on Google, YouTube, etc.
+  if (!onTrustedDomain) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        runFullScan();
+        setTimeout(runFullScan, 2500);
+      });
+    } else {
       runFullScan();
       setTimeout(runFullScan, 2500);
+    }
+
+    window.addEventListener("load", () => {
+      setTimeout(runFullScan, 1000);
     });
-  } else {
-    runFullScan();
-    setTimeout(runFullScan, 2500);
+
+    // Periodic scan only on untrusted domains, every 30s (MutationObserver handles real-time)
+    setInterval(runFullScan, 30000);
   }
-
-  // Also scan after full page load (images, iframes, etc.)
-  window.addEventListener("load", () => {
-    setTimeout(runFullScan, 1000);
-  });
-
-  // Periodic fallback scan every 15s (MutationObserver in threat-detector handles real-time)
-  setInterval(runFullScan, 15000);
 })();
