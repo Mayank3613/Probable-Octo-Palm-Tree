@@ -1,13 +1,19 @@
 """OctoPlamTree Threat Intelligence API — FastAPI Application"""
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+import os
 
 from .config import APP_NAME, VERSION, CORS_ORIGINS
 from .database import init_db
 from .routers import telemetry, scanner, alerts, attribution
 
+# Set up templates directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,6 +60,7 @@ async def root():
         "version": VERSION,
         "status": "online",
         "docs": "/docs",
+        "dashboard": "/dashboard",
         "endpoints": {
             "telemetry": "POST /telemetry/upload",
             "scan_url": "POST /scan/url",
@@ -65,8 +72,14 @@ async def root():
         },
     }
 
-
 @app.get("/health", tags=["System"])
 async def health_check():
     """Health check endpoint."""
     return {"status": "healthy", "version": VERSION}
+
+@app.get("/dashboard", response_class=HTMLResponse, tags=["UI"])
+async def render_dashboard(request: Request):
+    """Serve the Premium Threat Intelligence Dashboard."""
+    return templates.TemplateResponse(
+        request=request, name="dashboard.html", context={"version": VERSION}
+    )

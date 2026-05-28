@@ -4,7 +4,16 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
-## [2026-05-27] Customer-Ready Polish — Everyday Use Improvements
+## [2026-05-28] Phase 3 — Automated Testing & Threat Dashboard
+
+### Added (Testing Framework)
+- **Backend `pytest` Suite**: Full test coverage for FastAPI endpoints (`test_api.py`) and URL Threat Analyzer (`test_url_analyzer.py`). Validates entropy, homoglyph detection, and trusted domain whitelisting.
+- **Frontend Vanilla JS Test Runner**: Created `tests.html` and `tests.js` for the browser extension, allowing offline unit testing of `url-analyzer.js` in the browser without Node.js/Jest.
+
+### Added (Everyday Customer Use)
+- **Centralized Threat Intelligence Dashboard**: Built a premium, responsive dark-mode UI served directly by FastAPI at `http://localhost:8000/dashboard`. Visualizes live threat streams, network KPIs, and top flagged domains.
+- **7-Day Log Retention Policy**: `background.js` now automatically purges logs older than 7 days, preventing `chrome.storage.local` from filling up and breaking the extension for long-term users.
+- **Jinja2 Templates**: Added `jinja2` to backend dependencies for rendering the dashboard UI.
 
 ### Added (New Features)
 - **Desktop Notifications** — Chrome OS-level alerts for critical/high threats (30s cooldown to avoid spam)

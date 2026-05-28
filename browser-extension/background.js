@@ -164,7 +164,13 @@ function saveThreatLog(logEntry) {
     if (isDuplicate) return;
 
     logs.unshift(logEntry);
-    if (logs.length > 500) logs.length = 500; // Increased from 300
+    
+    // 7-day log retention policy (everyday customer use improvement)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const filteredLogs = logs.filter(l => l.timestamp >= sevenDaysAgo);
+    
+    // Hard limit fallback
+    if (filteredLogs.length > 500) filteredLogs.length = 500;
 
     // Update severity stats
     if (logEntry.severity === "critical") stats.critical++;
@@ -172,7 +178,7 @@ function saveThreatLog(logEntry) {
     else stats.medium++;
     stats.total++;
 
-    chrome.storage.local.set({ threatLogs: logs, stats: stats });
+    chrome.storage.local.set({ threatLogs: filteredLogs, stats: stats });
     updateBadge();
 
     // Desktop notification for critical/high threats
