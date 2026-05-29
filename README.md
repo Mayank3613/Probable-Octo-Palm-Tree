@@ -2,7 +2,7 @@
 
 ## Advanced Browser & Network Threat Attribution Platform
 
-SentinelX is a hybrid cybersecurity platform that combines:
+Probable-Octo-Palm-Tree is a hybrid cybersecurity platform that combines:
 
 - Browser extension–based threat detection
 - System-wide traffic interception
@@ -126,7 +126,7 @@ The platform is designed to detect, analyze, attribute, and automatically respon
 # Project Structure
 
 ```text
-sentinelx/
+probable-octo-palm-tree/
 │
 ├── browser-extension/
 ├── local-agent/
@@ -211,8 +211,8 @@ Install the following software:
 # Clone Repository
 
 ```bash
-git clone https://github.com/yourusername/sentinelx.git
-cd sentinelx
+git clone https://github.com/Mayank3613/Probable-Octo-Palm-Tree.git
+cd Probable-Octo-Palm-Tree
 ```
 
 ---
@@ -642,7 +642,7 @@ MIT License
 
 # Author
 
-## SentinelX Security Research Project
+## Probable-Octo-Palm-Tree Security Research Project
 
 Advanced Browser & Network Threat Attribution Framework
 
