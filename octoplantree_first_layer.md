@@ -1,4 +1,4 @@
-# OctoPlamTree — Browser Threat Detection Layer
+# Probable-Octo-Palm-Tree — Browser Threat Detection Layer
 
 ## Advanced Hybrid Cybersecurity Browser Extension
 
@@ -124,7 +124,7 @@ npm install typescript vite axios
 ```json
 {
   "manifest_version": 3,
-  "name": "OctoPlamTree Threat Detector",
+  "name": "Probable-Octo-Palm-Tree Threat Detector",
   "version": "1.0",
 
   "permissions": [
@@ -525,7 +525,7 @@ fetch("http://localhost:8000/telemetry/upload", {
 
 <body>
 
-<h2>OctoPlamTree</h2>
+<h2>Probable-Octo-Palm-Tree</h2>
 
 <div id="status">
 Protection Active

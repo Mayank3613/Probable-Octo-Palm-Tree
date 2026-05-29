@@ -1,4 +1,4 @@
-"""OctoPlamTree Pydantic Models — Request/Response schemas"""
+"""Probable-Octo-Palm-Tree Pydantic Models — Request/Response schemas"""
 
 from pydantic import BaseModel, Field
 from typing import Any, Literal, Optional

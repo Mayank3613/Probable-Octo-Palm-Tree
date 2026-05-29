@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "OctoPlamTree Threat Detector",
+  "name": "Probable-Octo-Palm-Tree Threat Detector",
   "version": "1.0.0",
   "description": "Advanced Hybrid Cybersecurity Browser Threat Detection Layer",
   "permissions": [

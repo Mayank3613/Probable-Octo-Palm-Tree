@@ -1,4 +1,4 @@
-// OctoPlamTree Logger Module (runs in Content Script scope)
+// Probable-Octo-Palm-Tree Logger Module (runs in Content Script scope)
 // Communicates with background worker to store security events
 
 (function() {
@@ -32,7 +32,7 @@
     log: function(type, details, severity = "medium") {
       // Only show critical threats in console — don't spam DevTools for everyday users
       if (severity === "critical") {
-        console.warn(`[OctoPlamTree] 🔴 ${type}: ${details}`);
+        console.warn(`[Probable-Octo-Palm-Tree] 🔴 ${type}: ${details}`);
       }
       safeSendMessage({
         action: "log_threat",

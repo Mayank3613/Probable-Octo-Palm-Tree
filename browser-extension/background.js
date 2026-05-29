@@ -1,4 +1,4 @@
-// OctoPlamTree Background Service Worker (ES6 Module)
+// Probable-Octo-Palm-Tree Background Service Worker (ES6 Module)
 // Orchestrates URL scanning, download monitoring, redirect tracking,
 // self-healing, badge updates, notifications, and telemetry sync.
 
@@ -6,8 +6,8 @@ import { analyzeURL } from './modules/url-analyzer.js';
 import { scanDownload } from './modules/download-scanner.js';
 
 const TELEMETRY_ENDPOINT = "http://localhost:8000/telemetry/upload";
-const TELEMETRY_ALARM_NAME = "octo_telemetry_sync";
-const BADGE_DECAY_ALARM_NAME = "octo_badge_decay";
+const TELEMETRY_ALARM_NAME = "probable_octo_telemetry_sync";
+const BADGE_DECAY_ALARM_NAME = "probable_octo_badge_decay";
 const TELEMETRY_SYNC_PERIOD_MINUTES = 1; // 1 minute
 const BADGE_DECAY_PERIOD_MINUTES = 60;   // Reset badge counts every hour
 let telemetryQueue = [];
@@ -107,7 +107,7 @@ function showThreatNotification(logEntry) {
     const title = `${severityEmoji} ${logEntry.severity.toUpperCase()} Threat Detected`;
 
     try {
-      chrome.notifications.create(`octo-threat-${now}`, {
+      chrome.notifications.create(`probable-octo-threat-${now}`, {
         type: "basic",
         iconUrl: "assets/icon128.png",
         title: title,
@@ -300,7 +300,7 @@ async function syncTelemetry() {
       telemetryBackoff++;
       // Only warn on first failure, not every 30s
       if (telemetryBackoff <= 1) {
-        console.warn("[OctoPlamTree] Telemetry sync failed — backend may be offline. Will retry with backoff.");
+        console.warn("[Probable-Octo-Palm-Tree] Telemetry sync failed — backend may be offline. Will retry with backoff.");
       }
     }
   });

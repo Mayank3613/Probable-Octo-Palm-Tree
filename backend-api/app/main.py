@@ -1,4 +1,4 @@
-"""OctoPlamTree Threat Intelligence API — FastAPI Application"""
+"""Probable-Octo-Palm-Tree Threat Intelligence API — FastAPI Application"""
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
@@ -19,15 +19,15 @@ templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
 async def lifespan(app: FastAPI):
     """Startup: initialize database."""
     await init_db()
-    print(f"[OctoPlamTree] {APP_NAME} v{VERSION} — ready")
+    print(f"[Probable-Octo-Palm-Tree] {APP_NAME} v{VERSION} — ready")
     yield
-    print("[OctoPlamTree] Shutting down...")
+    print("[Probable-Octo-Palm-Tree] Shutting down...")
 
 
 app = FastAPI(
     title=APP_NAME,
     description=(
-        "Backend threat intelligence server for the OctoPlamTree browser extension. "
+        "Backend threat intelligence server for the Probable-Octo-Palm-Tree browser extension. "
         "Receives telemetry, analyzes URLs, serves threat alerts, and provides domain attribution."
     ),
     version=VERSION,

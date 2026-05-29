@@ -1,4 +1,4 @@
-"""OctoPlamTree Database Layer — async SQLite via aiosqlite"""
+"""Probable-Octo-Palm-Tree Database Layer — async SQLite via aiosqlite"""
 
 import aiosqlite
 import os
@@ -52,7 +52,7 @@ async def init_db():
         await db.execute("CREATE INDEX IF NOT EXISTS idx_threat_timestamp ON threat_logs(timestamp)")
         await db.execute("CREATE INDEX IF NOT EXISTS idx_threat_type ON threat_logs(threat_type)")
         await db.commit()
-    print(f"[OctoPlamTree] Database initialized at {DB_PATH}")
+    print(f"[Probable-Octo-Palm-Tree] Database initialized at {DB_PATH}")
 
 
 @asynccontextmanager

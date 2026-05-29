@@ -1,4 +1,4 @@
-// OctoPlamTree API Interceptor (runs in Content Script scope)
+// Probable-Octo-Palm-Tree API Interceptor (runs in Content Script scope)
 // Evaluates intercepted API connections against threat lists
 
 (function() {

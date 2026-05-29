@@ -1,4 +1,4 @@
-// OctoPlamTree Download Scanner Module (ES6 module used by background.js)
+// Probable-Octo-Palm-Tree Download Scanner Module (ES6 module used by background.js)
 
 const DANGEROUS_EXTENSIONS = [
   "exe", "msi", "bat", "cmd", "scr", "vbs", "js", "jse", 

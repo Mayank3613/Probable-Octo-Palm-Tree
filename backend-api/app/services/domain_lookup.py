@@ -1,4 +1,4 @@
-"""OctoPlamTree Domain Intelligence Service — DNS + WHOIS lookups"""
+"""Probable-Octo-Palm-Tree Domain Intelligence Service — DNS + WHOIS lookups"""
 
 import asyncio
 from typing import Any

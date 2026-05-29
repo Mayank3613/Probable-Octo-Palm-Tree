@@ -1,4 +1,4 @@
-// OctoPlamTree Content Script
+// Probable-Octo-Palm-Tree Content Script
 // Orchestrates DOM scanning, hooks MAIN world APIs, and reports to Background
 
 (function() {
@@ -31,7 +31,7 @@
       };
       (document.head || document.documentElement).appendChild(script);
     } catch (e) {
-      console.debug("[OctoPlamTree] Failed to inject main world hook:", e);
+      console.debug("[Probable-Octo-Palm-Tree] Failed to inject main world hook:", e);
     }
   }
 
@@ -65,7 +65,7 @@
         window.OctoLogger.log(alert.type, alert.details, alert.severity);
       });
     } catch (e) {
-      console.debug("[OctoPlamTree] Scan error:", e);
+      console.debug("[Probable-Octo-Palm-Tree] Scan error:", e);
     }
   }
 

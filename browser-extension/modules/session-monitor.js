@@ -1,4 +1,4 @@
-// OctoPlamTree Session Monitor Module (runs in Content Script scope)
+// Probable-Octo-Palm-Tree Session Monitor Module (runs in Content Script scope)
 // Evaluates cookie modification alerts and session security practices
 
 (function() {

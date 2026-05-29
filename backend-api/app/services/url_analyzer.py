@@ -1,4 +1,4 @@
-"""OctoPlamTree Server-Side URL Threat Analyzer
+"""Probable-Octo-Palm-Tree Server-Side URL Threat Analyzer
 Mirrors the browser extension's url-analyzer.js logic on the backend.
 """
 

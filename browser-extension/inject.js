@@ -1,4 +1,4 @@
-// OctoPlamTree Hook Injection Script (Runs in the page context / MAIN world)
+// Probable-Octo-Palm-Tree Hook Injection Script (Runs in the page context / MAIN world)
 // Direct interceptor for APIs (Fetch, XHR, WebSocket) and document.cookie.
 
 (function() {

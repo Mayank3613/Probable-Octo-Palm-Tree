@@ -1,4 +1,4 @@
-# OctoPlamTree — Update Log
+# Probable-Octo-Palm-Tree — Update Log
 
 All changes to the project are documented here in reverse chronological order.
 
@@ -7,7 +7,7 @@ All changes to the project are documented here in reverse chronological order.
 ## [2026-05-29] Phase 4 — Live Threat Testing & Local Security Agent
 
 ### Added
-- **Live Malware Tester:** Built `live_malware_tester.py` to pull hundreds of recently discovered, real-world malicious URLs from URLhaus via CSV and benchmark the OctoPlamTree engine against them.
+- **Live Malware Tester:** Built `live_malware_tester.py` to pull hundreds of recently discovered, real-world malicious URLs from URLhaus via CSV and benchmark the Probable-Octo-Palm-Tree engine against them.
 - **Heuristic Engine Upgrades:** Analyzed false-negatives from the URLhaus test and significantly upgraded the threat engine (`url_analyzer.py` and `url-analyzer.js`).
   - Added detection for UUIDs embedded in URLs (common in C2 bots).
   - Added detection for non-standard ports on Raw IP addresses.

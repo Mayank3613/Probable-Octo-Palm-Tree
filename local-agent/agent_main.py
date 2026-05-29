@@ -3,7 +3,7 @@ import time
 import requests
 from datetime import datetime
 
-# OctoPlamTree Local Security Agent
+# Probable-Octo-Palm-Tree Local Security Agent
 # Monitors active system network connections to detect unauthorized access outside the browser
 
 BACKEND_API = "http://localhost:8000/telemetry/upload"
@@ -21,7 +21,7 @@ WHITELIST_PROCESSES = {
 }
 
 def monitor_network():
-    print("OctoPlamTree Local Security Agent started.")
+    print("Probable-Octo-Palm-Tree Local Security Agent started.")
     print("Monitoring active network connections...")
     
     seen_connections = set()

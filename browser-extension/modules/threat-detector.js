@@ -1,4 +1,4 @@
-// OctoPlamTree Threat Detector Module (runs in Content Script scope)
+// Probable-Octo-Palm-Tree Threat Detector Module (runs in Content Script scope)
 // Real-time DOM threat scanner with MutationObserver support
 
 (function() {

@@ -1,4 +1,4 @@
-// OctoPlamTree Dashboard Controller
+// Probable-Octo-Palm-Tree Dashboard Controller
 // Manages real-time popup rendering, severity filtering, current-page risk,
 // settings, user whitelist, and notifications
 
@@ -163,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const logs = result.threatLogs || [];
       const exportData = {
         exported_at: new Date().toISOString(),
-        extension: "OctoPlamTree",
+        extension: "Probable-Octo-Palm-Tree",
         version: "1.0.0",
         total_entries: logs.length,
         threat_logs: logs
@@ -173,7 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `octoplamtree-logs-${Date.now()}.json`;
+      anchor.download = `probable-octo-palm-tree-logs-${Date.now()}.json`;
       document.body.appendChild(anchor);
       anchor.click();
       document.body.removeChild(anchor);

@@ -1,4 +1,4 @@
-// OctoPlamTree URL Analyzer Module (ES6 module used by background.js)
+// Probable-Octo-Palm-Tree URL Analyzer Module (ES6 module used by background.js)
 // Comprehensive URL threat scoring engine with trusted domain whitelist
 
 // ============================================================

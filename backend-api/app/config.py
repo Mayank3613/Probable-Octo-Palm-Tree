@@ -1,7 +1,7 @@
-"""OctoPlamTree Backend API Configuration"""
+"""Probable-Octo-Palm-Tree Backend API Configuration"""
 
-DATABASE_PATH = "octo_threats.db"
-APP_NAME = "OctoPlamTree Threat Intelligence API"
+DATABASE_PATH = "probable_octo_threats.db"
+APP_NAME = "Probable-Octo-Palm-Tree Threat Intelligence API"
 VERSION = "1.0.0"
 CORS_ORIGINS = ["*"]
 MAX_EVENTS_PER_UPLOAD = 100

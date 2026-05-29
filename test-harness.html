@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OctoPlamTree — Extension Test Harness</title>
+  <title>Probable-Octo-Palm-Tree — Extension Test Harness</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     :root {
@@ -186,7 +186,7 @@
 <body>
 
   <header>
-    <h1>🐙 OctoPlamTree Test Harness</h1>
+    <h1>🐙 Probable-Octo-Palm-Tree Test Harness</h1>
     <p class="subtitle">Interactive threat simulation dashboard. Trigger each module below and verify alerts appear in the extension popup.</p>
   </header>
 
@@ -195,7 +195,7 @@
     <ol>
       <li>Open <code>chrome://extensions</code> → enable <strong>Developer Mode</strong></li>
       <li>Click <strong>"Load unpacked"</strong> → select the <code>browser-extension/</code> folder</li>
-      <li>Pin the OctoPlamTree icon in the toolbar</li>
+      <li>Pin the Probable-Octo-Palm-Tree icon in the toolbar</li>
       <li>Open this test page and use the buttons below</li>
       <li>Click the extension icon to see detected threats in real-time</li>
     </ol>
@@ -432,7 +432,7 @@
         const ws = new WebSocket("wss://echo.websocket.events");
         ws.onopen = () => {
           logTo("api-console", "✓ WebSocket connected", "ok");
-          ws.send("OctoPlamTree test ping");
+          ws.send("Probable-Octo-Palm-Tree test ping");
         };
         ws.onmessage = (e) => {
           logTo("api-console", `✓ WebSocket echo: "${e.data}"`, "ok");
@@ -500,7 +500,7 @@
     // ================================
     function triggerDownload(filename) {
       const a = document.createElement("a");
-      a.href = "data:text/plain,OctoPlamTree-test-file";
+      a.href = "data:text/plain,Probable-Octo-Palm-Tree-test-file";
       a.download = filename;
       a.click();
     }

@@ -1,4 +1,4 @@
-// OctoPlamTree Threat Quarantine Controller
+// Probable-Octo-Palm-Tree Threat Quarantine Controller
 
 document.addEventListener("DOMContentLoaded", () => {
   const urlEl = document.getElementById("threat-url");
