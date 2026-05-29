@@ -282,10 +282,15 @@ export function analyzeURL(urlString) {
     if (/^[0-9.]+$/.test(hostname) || /^\[.*\]$/.test(hostname)) {
       score += 25;
       reasons.push("Hostname is a raw IP address");
+      // Non-standard ports on raw IPs
+      if (url.port && !['80', '443', '8080', '8443'].includes(url.port)) {
+        score += 20;
+        reasons.push(`Raw IP using non-standard port (${url.port})`);
+      }
     }
 
     // ---- 6. Suspicious TLDs ----
-    const suspiciousTLDs = ["tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest"];
+    const suspiciousTLDs = ["tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest", "sbs", "hu", "site", "online", "cfd", "skin"];
     if (suspiciousTLDs.includes(tld)) {
       score += 15;
       reasons.push(`Suspicious TLD '.${tld}' often used in phishing`);
@@ -303,11 +308,22 @@ export function analyzeURL(urlString) {
       reasons.push("Data URI scheme — common phishing vector");
     }
 
-    // ---- 9. Excessive path depth ----
+    // ---- 9. Excessive path depth or malicious executables ----
     const pathSegments = pathname.split('/').filter(s => s.length > 0);
     if (pathSegments.length > 7) {
       score += 10;
       reasons.push(`Deep URL path (${pathSegments.length} segments)`);
+    }
+    
+    if (/\.(sh|bin|elf|exe|apk|spc|arm5|arm6|arm7|ppc|mips|x86|arm|sh4|arc|m68k|mpsl|armv7l|armv6l)$/i.test(pathname)) {
+      score += 30;
+      reasons.push(`URL points to a potentially malicious executable format`);
+    }
+    
+    // UUID in path or query string (common for C2 communication)
+    if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(fullUrl)) {
+      score += 25;
+      reasons.push("UUID found in URL (common in malware C2s)");
     }
 
     // ---- 10. @ sign in URL ----

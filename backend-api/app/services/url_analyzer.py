@@ -75,7 +75,7 @@ TARGET_BRANDS = [
     "whatsapp", "telegram",
 ]
 
-SUSPICIOUS_TLDS = {"tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest"}
+SUSPICIOUS_TLDS = {"tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest", "sbs", "hu", "site", "online", "cfd", "skin"}
 
 
 def _levenshtein(a: str, b: str) -> int:
@@ -192,6 +192,10 @@ def analyze_url(url_string: str) -> dict:
     if re.match(r"^[0-9.]+$", hostname) or re.match(r"^\[.*\]$", hostname):
         score += 25
         reasons.append("Hostname is a raw IP address")
+        # Raw IPs with non-standard ports are highly suspicious (often malware droppers)
+        if parsed.port and parsed.port not in (80, 443, 8080, 8443):
+            score += 20
+            reasons.append(f"Raw IP using non-standard port ({parsed.port})")
 
     # 6. Suspicious TLD
     if tld in SUSPICIOUS_TLDS:
@@ -208,11 +212,21 @@ def analyze_url(url_string: str) -> dict:
         score += 40
         reasons.append("Data URI scheme — common phishing vector")
 
-    # 9. Deep path
+    # 9. Deep path or Malicious File Extensions
     segs = [s for s in pathname.split("/") if s]
     if len(segs) > 7:
         score += 10
         reasons.append(f"Deep URL path ({len(segs)} segments)")
+        
+    # Malicious executable paths
+    if pathname.endswith((".sh", ".bin", ".elf", ".exe", ".apk", ".spc", ".arm5", ".arm6", ".arm7", ".ppc", ".mips", ".x86", ".arm", ".sh4", ".arc", ".m68k", ".mpsl", ".armv7l", ".armv6l")):
+        score += 30
+        reasons.append(f"URL points to a potentially malicious executable format")
+        
+    # UUID in path or query string (common for C2 communication)
+    if re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", full_url):
+        score += 25
+        reasons.append("UUID found in URL (common in malware C2s)")
 
     # 10. @ sign
     if "@" in full_url and not parsed.scheme.startswith("mailto"):

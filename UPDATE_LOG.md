@@ -4,7 +4,16 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
-## [2026-05-28] Phase 3 — Automated Testing & Threat Dashboard
+## [2026-05-29] Phase 4 — Live Threat Testing & Local Security Agent
+
+### Added
+- **Live Malware Tester:** Built `live_malware_tester.py` to pull hundreds of recently discovered, real-world malicious URLs from URLhaus via CSV and benchmark the OctoPlamTree engine against them.
+- **Heuristic Engine Upgrades:** Analyzed false-negatives from the URLhaus test and significantly upgraded the threat engine (`url_analyzer.py` and `url-analyzer.js`).
+  - Added detection for UUIDs embedded in URLs (common in C2 bots).
+  - Added detection for non-standard ports on Raw IP addresses.
+  - Added new suspicious TLDs (`.cfd`, `.skin`, `.sbs`, `.site`, etc).
+  - Expanded malicious payload extensions to detect IoT botnets (`.arm`, `.mips`, `.sh4`, `.spc`, `.x86`, `.m68k`).
+- **Local Security Agent:** Scaffolded the new `local-agent/agent_main.py` using `psutil`. It monitors OS-level outbound network connections, maps them back to the originating process (like `powershell.exe` or `svchost.exe`), and sends telemetry directly to the backend API dashboard.
 
 ### Added (Testing Framework)
 - **Backend `pytest` Suite**: Full test coverage for FastAPI endpoints (`test_api.py`) and URL Threat Analyzer (`test_url_analyzer.py`). Validates entropy, homoglyph detection, and trusted domain whitelisting.
