@@ -1,660 +1,144 @@
-# Probable-Octo-Palm-Tree
+# 🛡️ Probable-Octo-Palm-Tree
 
-## Advanced Browser & Network Threat Attribution Platform
+> A hybrid cybersecurity platform that combines browser extension–based threat detection, system-wide traffic interception, CDN/origin attribution, and AI-powered threat intelligence for self-healing browser security.
 
-Probable-Octo-Palm-Tree is a hybrid cybersecurity platform that combines:
-
-- Browser extension–based threat detection
-- System-wide traffic interception
-- CDN/origin attribution
-- AI-powered threat intelligence
-- Real-time behavioral monitoring
-- Self-healing browser security
-
-The platform is designed to detect, analyze, attribute, and automatically respond to malicious websites, phishing campaigns, suspicious infrastructure, and hidden attacker networks.
+![Python](https://img.shields.io/badge/Python-3.14+-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.115-teal?logo=fastapi)
+![JavaScript](https://img.shields.io/badge/Vanilla_JS-ES6-yellow?logo=javascript)
+![HTML/CSS](https://img.shields.io/badge/UI-TailwindCSS-cyan?logo=tailwindcss)
+![Security](https://img.shields.io/badge/Security-Advanced-red?logo=security)
 
 ---
 
-# Features
+## 📋 Table of Contents
 
-## Browser Security Engine
-
-- Real-time URL analysis
-- Phishing detection
-- DOM & JavaScript monitoring
-- Hidden iframe detection
-- Cookie/session protection
-- Download scanning
-- WebSocket monitoring
-- Browser API interception
+- [Overview](#-overview)
+- [Architecture](#-architecture)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Technology Stack](#-technology-stack)
+- [Installation](#-installation)
+- [Usage](#-usage)
 
 ---
 
-## Network Monitoring Engine
+## 🌟 Overview
 
-- Packet capture
-- DNS monitoring
-- TLS fingerprinting
-- Process-to-network mapping
-- Traffic correlation
-- Fast-flux detection
-- Suspicious infrastructure detection
+**Probable-Octo-Palm-Tree** is designed to detect, analyze, attribute, and automatically respond to malicious websites, phishing campaigns, suspicious infrastructure, and hidden attacker networks. By operating both inside the browser and at the host OS level, it provides comprehensive coverage against modern web threats.
 
 ---
 
-## Attribution Engine
-
-- CDN bypass analysis
-- Passive DNS correlation
-- ASN mapping
-- Certificate correlation
-- Infrastructure clustering
-- Hidden backend discovery
-- Threat relationship mapping
-
----
-
-## AI & Threat Intelligence
-
-- URL reputation scoring
-- Behavioral anomaly detection
-- Infrastructure graph AI
-- Threat classification
-- ML-based phishing detection
-- Attack pattern recognition
-
----
-
-## Self-Healing Security
-
-- Automatic tab isolation
-- Session invalidation
-- Cookie cleanup
-- Browser rollback
-- DNS sinkholing
-- IP blocking
-- Process quarantine
-
----
-
-# System Architecture
+## 🏗️ Architecture
 
 ```text
 ┌───────────────────────────────────────────────┐
 │               Browser Extension              │
 │-----------------------------------------------│
-│ URL Analysis                                  │
-│ DOM Monitoring                                │
-│ Script Detection                              │
-│ Session Protection                            │
+│ 🔍 URL Analysis                               │
+│ 📜 DOM Monitoring                             │
+│ 🛡️ Session Protection                         │
 └──────────────────────┬────────────────────────┘
                        │
                        ▼
 ┌───────────────────────────────────────────────┐
 │          Local Security Agent                │
 │-----------------------------------------------│
-│ Packet Capture                                │
-│ DNS Monitoring                                │
-│ TLS Fingerprinting                            │
-│ Process Mapping                               │
-│ Traffic Correlation                           │
+│ 📡 DNS Monitoring                             │
+│ 🚦 Process Mapping                            │
+│ 🔌 Traffic Correlation                        │
 └──────────────────────┬────────────────────────┘
                        │
                        ▼
 ┌───────────────────────────────────────────────┐
-│           Attribution Engine                 │
+│           Backend API & AI Engine            │
 │-----------------------------------------------│
-│ Passive DNS                                   │
-│ Certificate Analysis                          │
-│ CDN Correlation                               │
-│ Infrastructure Mapping                        │
-└──────────────────────┬────────────────────────┘
-                       │
-                       ▼
-┌───────────────────────────────────────────────┐
-│            Cloud AI Platform                 │
-│-----------------------------------------------│
-│ Threat Intelligence                           │
-│ ML Classification                             │
-│ Risk Scoring                                  │
-│ Attack Pattern Detection                      │
+│ 🧠 Threat Intelligence                        │
+│ 📊 Live Dashboard                             │
+│ 🌐 CDN/Origin Attribution                     │
 └───────────────────────────────────────────────┘
 ```
 
 ---
 
-# Project Structure
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 🕸️ **Real-time URL Analysis** | Scores URLs for entropy, typosquatting, IDN homoglyphs, and suspicious TLDs. |
+| 🛡️ **Self-Healing Security** | Automatically blocks malicious domains and quarantines malicious downloads. |
+| 📊 **Live Threat Dashboard** | Premium, responsive dark-mode UI to monitor all network alerts globally. |
+| 🖥️ **OS-Level Monitoring** | Python-based local agent tracks system-wide process networking (via `psutil`). |
+| 🤖 **Threat Intelligence** | Connects with URLhaus and performs DNS/WHOIS lookups for IP attribution. |
+
+---
+
+## 📁 Project Structure
 
 ```text
 probable-octo-palm-tree/
 │
-├── browser-extension/
-├── local-agent/
-├── attribution-engine/
-├── backend-api/
-├── ai-engine/
-├── dashboard/
-├── sandbox/
-├── databases/
-├── deployment/
-├── docs/
-└── tests/
+├── browser-extension/     # Vanilla JS Chrome Extension
+│   ├── background.js      # Main service worker
+│   └── modules/           # URL/Download analyzers
+│
+├── local-agent/           # System-wide python agent
+│   └── agent_main.py      # Process & network monitor
+│
+└── backend-api/           # FastAPI backend server
+    ├── app/               # Routers and services
+    ├── tests/             # Pytest framework & live tester
+    └── templates/         # Dashboard HTML
 ```
 
 ---
 
-# Technology Stack
+## 🛠️ Technology Stack
 
-## Frontend
-
-| Technology | Purpose |
+| Category | Technologies |
 |---|---|
-| TypeScript | Browser extension |
-| React | Dashboard |
-| Next.js | Frontend framework |
-| TailwindCSS | UI styling |
+| **Frontend (Extension)** | Vanilla JavaScript (ES6), HTML5, CSS3 |
+| **Backend & Dashboard** | FastAPI, Python 3, Jinja2, TailwindCSS, SQLite |
+| **Local Agent** | Python, `psutil`, `requests` |
+| **Testing** | `pytest`, URLhaus Threat Feed API |
 
 ---
 
-## Backend
+## 🚀 Installation
 
-| Technology | Purpose |
-|---|---|
-| FastAPI | REST API |
-| Python | AI/ML backend |
-| Rust | Packet engine |
-| Redis | Cache |
-| PostgreSQL | Database |
-| Elasticsearch | Telemetry search |
-| Neo4j | Infrastructure graph |
-
----
-
-## Networking & Security
-
-| Tool | Purpose |
-|---|---|
-| WinDivert | Packet interception |
-| Npcap | Packet capture |
-| Wireshark | Traffic analysis |
-| JA3 | TLS fingerprinting |
-| eBPF | Linux monitoring |
-
----
-
-## AI/ML
-
-| Framework | Purpose |
-|---|---|
-| PyTorch | Deep learning |
-| TensorFlow | ML models |
-| Scikit-learn | Classification |
-| XGBoost | Threat scoring |
-
----
-
-# Installation
-
-# Prerequisites
-
-Install the following software:
-
-- Node.js
-- Python 3.11+
-- Rust
-- Docker
-- Git
-- Npcap
-
----
-
-# Clone Repository
-
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/Mayank3613/Probable-Octo-Palm-Tree.git
 cd Probable-Octo-Palm-Tree
 ```
 
----
-
-# Setup Backend API
-
+### 2. Setup Backend Server
 ```bash
 cd backend-api
 pip install -r requirements.txt
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --reload
 ```
+*The dashboard will be available at `http://localhost:8000/dashboard`*
 
----
+### 3. Load Browser Extension
+1. Open Google Chrome and navigate to `chrome://extensions/`.
+2. Enable **Developer mode** in the top right.
+3. Click **Load unpacked** and select the `browser-extension` folder.
 
-# Setup Browser Extension
-
-```bash
-cd browser-extension
-npm install
-npm run build
-```
-
-Load extension in Chrome:
-
-```text
-Chrome → Extensions → Developer Mode → Load Unpacked
-```
-
----
-
-# Setup Dashboard
-
-```bash
-cd dashboard
-npm install
-npm run dev
-```
-
----
-
-# Setup Local Security Agent
-
+### 4. Start Local Agent (Optional)
 ```bash
 cd local-agent
-cargo build --release
+pip install -r requirements.txt
+python agent_main.py
 ```
 
 ---
 
-# Running the System
+## 💡 Usage
 
-# Start Backend
-
-```bash
-uvicorn app.main:app --reload
-```
-
----
-
-# Start Dashboard
-
-```bash
-npm run dev
-```
+Once everything is running:
+- **Browse Safely:** The extension will monitor your web traffic. If you land on a malicious site, you will be redirected to the safe quarantine page.
+- **View Telemetry:** Open `http://localhost:8000/dashboard` to see a live stream of all blocked threats, blocked network connections, and system-wide process alerts.
+- **Run Tests:** You can execute `pytest` in the `backend-api` folder, or run `python tests/live_malware_tester.py` to benchmark the engine against real-world malware.
 
 ---
-
-# Start Local Agent
-
-```bash
-cargo run
-```
-
----
-
-# Load Browser Extension
-
-Open:
-
-```text
-chrome://extensions
-```
-
-Enable:
-
-```text
-Developer Mode
-```
-
-Load:
-
-```text
-browser-extension/dist
-```
-
----
-
-# Core Modules
-
-# Browser Extension
-
-Responsible for:
-
-- Browser monitoring
-- DOM analysis
-- Threat detection
-- Session protection
-- Browser self-healing
-
-Main files:
-
-```text
-background.js
-content.js
-url-analyzer.js
-threat-detector.js
-self-healing.js
-```
-
----
-
-# Local Security Agent
-
-Responsible for:
-
-- Packet interception
-- DNS analysis
-- TLS fingerprinting
-- Process correlation
-- Network telemetry
-
-Main files:
-
-```text
-packet_capture.rs
-dns_monitor.rs
-tls_fingerprint.rs
-traffic_correlator.rs
-```
-
----
-
-# Attribution Engine
-
-Responsible for:
-
-- Infrastructure mapping
-- Passive DNS analysis
-- Certificate correlation
-- CDN attribution
-
-Main files:
-
-```text
-ip_cluster.py
-cert_correlator.py
-backend_locator.py
-```
-
----
-
-# AI Engine
-
-Responsible for:
-
-- Threat classification
-- URL scoring
-- Infrastructure AI
-- Behavioral detection
-
-Main files:
-
-```text
-train_url_model.py
-predictor.py
-scoring_engine.py
-```
-
----
-
-# Security Features
-
-## Threat Detection
-
-- Phishing domains
-- Malicious redirects
-- Suspicious JavaScript
-- Malware traffic
-- Fake login forms
-- Session hijacking
-
----
-
-## Infrastructure Attribution
-
-- Hidden origin detection
-- CDN correlation
-- TLS analysis
-- ASN mapping
-- Shared attacker infrastructure
-
----
-
-## Self-Healing
-
-- Session cleanup
-- Cookie invalidation
-- Cache clearing
-- Process isolation
-- Automatic remediation
-
----
-
-# API Endpoints
-
-## Threat APIs
-
-```http
-POST /scan/url
-POST /scan/file
-POST /scan/traffic
-```
-
----
-
-## Attribution APIs
-
-```http
-POST /attribution/domain
-POST /attribution/ip
-```
-
----
-
-## Telemetry APIs
-
-```http
-POST /telemetry/upload
-GET /alerts/live
-```
-
----
-
-# AI Models
-
-## URL Classification
-
-Features:
-
-- Entropy
-- Redirect chains
-- Domain age
-- Special characters
-- DNS anomalies
-
-Models:
-
-- Random Forest
-- XGBoost
-
----
-
-## Traffic Anomaly Detection
-
-Detects:
-
-- Malware traffic
-- Beaconing
-- Exfiltration
-- Botnet communication
-
-Models:
-
-- LSTM
-- Autoencoders
-
----
-
-## Infrastructure Graph AI
-
-Uses:
-
-- Graph Neural Networks
-
-Purpose:
-
-- Discover attacker relationships
-- Cluster malicious infrastructure
-
----
-
-# Development Roadmap
-
-## Phase 1
-
-- Browser extension MVP
-- URL monitoring
-- Rule-based detection
-
----
-
-## Phase 2
-
-- Packet interception
-- DNS monitoring
-- TLS fingerprinting
-
----
-
-## Phase 3
-
-- Traffic correlation
-- Process mapping
-- Infrastructure attribution
-
----
-
-## Phase 4
-
-- AI threat scoring
-- Behavioral analysis
-- Attack clustering
-
----
-
-## Phase 5
-
-- Self-healing automation
-- Enterprise deployment
-- Distributed intelligence
-
----
-
-# Deployment
-
-## Docker
-
-```bash
-docker-compose up --build
-```
-
----
-
-## Kubernetes
-
-Deployment files are available in:
-
-```text
-deployment/kubernetes/
-```
-
----
-
-# Testing
-
-## Run Backend Tests
-
-```bash
-pytest
-```
-
----
-
-## Run Frontend Tests
-
-```bash
-npm test
-```
-
----
-
-## Run Rust Agent Tests
-
-```bash
-cargo test
-```
-
----
-
-# Future Enhancements
-
-- Zero-day behavioral detection
-- Autonomous malware analysis
-- Distributed threat intelligence
-- Browser memory inspection
-- Cross-device synchronization
-- AI-powered forensic reports
-- SOC integration
-
----
-
-# Security & Legal Notice
-
-This project is intended strictly for:
-
-- Cybersecurity research
-- Threat intelligence
-- Defensive security
-- Infrastructure attribution
-- Malware analysis
-- Educational purposes
-
-Unauthorized monitoring or misuse against systems without permission may violate local laws and regulations.
-
----
-
-# Contributing
-
-Contributions are welcome.
-
-Please create:
-
-- Feature branches
-- Pull requests
-- Security-focused documentation
-- Test cases
-
----
-
-# License
-
-```text
-MIT License
-```
-
----
-
-# Author
-
-## Probable-Octo-Palm-Tree Security Research Project
-
-Advanced Browser & Network Threat Attribution Framework
-
----
-
-# Acknowledgements
-
-Inspired by:
-
-- Modern EDR systems
-- Threat intelligence platforms
-- Browser security research
-- Network forensic frameworks
-- Infrastructure attribution techniques
-
+*Developed as a next-generation hybrid cybersecurity platform.*
