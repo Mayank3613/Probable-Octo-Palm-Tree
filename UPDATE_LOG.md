@@ -21,6 +21,8 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
+## [2026-05-30] Precision Heuristics Upgrade
+
 ### Changed
 - **Heuristic Engine Accuracy Boost:** Tuned the detection algorithms in both `url_analyzer.py` and `url-analyzer.js` to catch previously missed real-world malware drops. Detection rate against the live URLhaus botnet feed improved from **61.3% to 99.3%**.
   - **Extensionless IoT Payloads:** Added detection for malicious architectures downloaded without file extensions (e.g., `/x86`, `/mips`, `/powerpc`).
@@ -31,6 +33,8 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
+## [2026-05-29] Repository Refactoring & Formatting
+
 ### Changed
 - **Global Rename:** Renamed the entire project across all files, classes, databases, and logs from "OctoPlamTree" to **Probable-Octo-Palm-Tree** to match the GitHub repository name.
 - **README Formatting:** Completely overhauled the `README.md` to be visually attractive, adding `shields.io` badges, emojis to headers, a Table of Contents, and stylized blockquotes, while retaining all the extensive original content.
@@ -39,6 +43,8 @@ All changes to the project are documented here in reverse chronological order.
 - **Redundant Tests Deletion:** Cleaned up the repository by deleting `test-harness.html`, `browser-extension/tests.html`, `browser-extension/tests.js`, `backend-api/tests/live_malware_tester.py`, and `octoplantree_first_layer.md`. These were only used for manual development sandbox testing and are not needed for production.
 
 ---
+
+## [2026-05-29] Phase 4 — Live Threat Testing & Local Security Agent
 
 ### Added
 - **Live Malware Tester:** Built `live_malware_tester.py` to pull hundreds of recently discovered, real-world malicious URLs from URLhaus via CSV and benchmark the Probable-Octo-Palm-Tree engine against them.
