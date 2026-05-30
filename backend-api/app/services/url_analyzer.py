@@ -219,13 +219,29 @@ def analyze_url(url_string: str) -> dict:
         reasons.append(f"Deep URL path ({len(segs)} segments)")
         
     # Malicious executable paths
-    if pathname.endswith((".sh", ".bin", ".elf", ".exe", ".apk", ".spc", ".arm5", ".arm6", ".arm7", ".ppc", ".mips", ".x86", ".arm", ".sh4", ".arc", ".m68k", ".mpsl", ".armv7l", ".armv6l")):
+    # Many IoT botnets use extensionless architectures like /x86 or /mips
+    iot_archs = {"arm5", "arm6", "arm7", "ppc", "mips", "mipsel", "x86", "i686", "i586", "powerpc", "arm", "sh4", "arc", "m68k", "mpsl", "armv7l", "armv6l"}
+    
+    if pathname.endswith((".sh", ".bin", ".elf", ".exe", ".apk", ".spc", ".tok", ".msi", ".ps1", ".bat", ".cmd", ".scr", ".vbs")):
+        score += 35
+        reasons.append(f"URL points to a potentially malicious executable extension")
+        
+    if pathname.endswith((".zip", ".rar", ".7z", ".tar.gz", ".gz", ".iso", ".cab")):
+        score += 20
+        reasons.append(f"URL points to a compressed archive (often used for payload delivery)")
+        
+    if segs and any(arch in segs[-1] for arch in iot_archs):
+        score += 35
+        reasons.append(f"URL points to an IoT malware architecture payload ({segs[-1]})")
+
+    # Raw IP short drop paths (e.g., http://1.2.3.4/p)
+    if re.match(r"^[0-9.]+$", hostname) and len(segs) == 1 and len(segs[0]) <= 3:
         score += 30
-        reasons.append(f"URL points to a potentially malicious executable format")
+        reasons.append(f"Raw IP with suspicious short drop path (/{segs[0]})")
         
     # UUID in path or query string (common for C2 communication)
     if re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", full_url):
-        score += 25
+        score += 35
         reasons.append("UUID found in URL (common in malware C2s)")
 
     # 10. @ sign

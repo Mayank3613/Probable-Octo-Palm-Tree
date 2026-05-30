@@ -315,14 +315,35 @@ export function analyzeURL(urlString) {
       reasons.push(`Deep URL path (${pathSegments.length} segments)`);
     }
     
-    if (/\.(sh|bin|elf|exe|apk|spc|arm5|arm6|arm7|ppc|mips|x86|arm|sh4|arc|m68k|mpsl|armv7l|armv6l)$/i.test(pathname)) {
-      score += 30;
+    const iotArchs = ["arm5", "arm6", "arm7", "ppc", "mips", "mipsel", "x86", "i686", "i586", "powerpc", "arm", "sh4", "arc", "m68k", "mpsl", "armv7l", "armv6l"];
+    
+    if (/\.(sh|bin|elf|exe|apk|spc|tok|msi|ps1|bat|cmd|scr|vbs)$/i.test(pathname)) {
+      score += 35;
       reasons.push(`URL points to a potentially malicious executable format`);
+    }
+    
+    if (/\.(zip|rar|7z|tar\.gz|gz|iso|cab)$/i.test(pathname)) {
+      score += 20;
+      reasons.push(`URL points to a compressed archive (often used for payload delivery)`);
+    }
+    
+    if (pathSegments.length > 0) {
+      const lastSegment = pathSegments[pathSegments.length - 1].toLowerCase();
+      if (iotArchs.some(arch => lastSegment.includes(arch))) {
+        score += 35;
+        reasons.push(`URL points to an IoT malware architecture payload (${lastSegment})`);
+      }
+    }
+    
+    // Raw IP short drop paths
+    if (/^[0-9.]+$/.test(hostname) && pathSegments.length === 1 && pathSegments[0].length <= 3) {
+      score += 30;
+      reasons.push(`Raw IP with suspicious short drop path (/${pathSegments[0]})`);
     }
     
     // UUID in path or query string (common for C2 communication)
     if (/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(fullUrl)) {
-      score += 25;
+      score += 35;
       reasons.push("UUID found in URL (common in malware C2s)");
     }
 
