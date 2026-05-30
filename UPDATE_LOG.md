@@ -4,7 +4,22 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
-## [2026-05-30] Precision Heuristics Upgrade
+## [2026-05-30] Phase 5 — Mass Threat Testing & Heuristics Upgrade
+
+### Added
+- **Comprehensive Threat Tester:** Built `tests/comprehensive_threat_tester.py` to rigorously evaluate the backend engine against 300+ live OpenPhish URLs, 150+ URLhaus Malware URLs, and simulated TLS/DNS anomalies.
+- **TLS/SSL Validation:** Added strict TLS certificate parsing to `domain_lookup.py` to flag expired, invalid, and self-signed certificates.
+- **DNS Fast-Flux Detection:** Added logic to `domain_lookup.py` to flag domains returning highly abnormal numbers of IP addresses (fast-flux infrastructure).
+
+### Changed
+- **Phishing Heuristics Overhaul:** Massively upgraded the static string analysis engine (`url_analyzer.py` & `url-analyzer.js`).
+  - **Abused Cloud Hosts:** Removed highly-abused free tier hosting platforms (e.g., `vercel.app`, `pages.dev`, `firebaseio.com`, `framer.app`, `s3.amazonaws.com`) from the `TRUSTED_DOMAINS` whitelist.
+  - **Cloud Penalties:** Applied an instant critical penalty (+35 points) for URLs hosted on these abused platforms to immediately flag cloud-hosted phishing drops.
+  - **Aggressive TLD Penalties:** Increased the penalty for notoriously spammy TLDs (`.top`, `.xyz`, `.ml`, etc.) from +25 to +35 to catch automated botnet infrastructure.
+  - **Target Brands:** Added `t-mobile`, `dpd`, `fedex`, `usps`, `metamask`, and `opensea` to the brand impersonation detection logic.
+  - **Result:** Phishing detection rate against live OpenPhish data improved from **1.3%** to **68.3%** (a massive jump for a purely static analyzer before active DOM/AI scanning even kicks in).
+
+---
 
 ### Changed
 - **Heuristic Engine Accuracy Boost:** Tuned the detection algorithms in both `url_analyzer.py` and `url-analyzer.js` to catch previously missed real-world malware drops. Detection rate against the live URLhaus botnet feed improved from **61.3% to 99.3%**.

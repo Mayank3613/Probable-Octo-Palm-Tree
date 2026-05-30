@@ -15,12 +15,12 @@ TRUSTED_DOMAINS = {
     "googleadservices.com", "googletagmanager.com", "googlesyndication.com",
     "gstatic.com", "youtube.com", "youtu.be", "ytimg.com",
     "gmail.com", "android.com", "chromium.org",
-    "firebase.google.com", "firebaseio.com", "withgoogle.com",
+    "firebase.google.com", "withgoogle.com",
     "blogger.com", "blogspot.com",
     # Microsoft
     "microsoft.com", "microsoftonline.com", "live.com", "outlook.com",
     "office.com", "office365.com", "windows.com", "windowsupdate.com",
-    "msn.com", "bing.com", "azure.com", "azurewebsites.net",
+    "msn.com", "bing.com", "azure.com",
     "sharepoint.com", "onedrive.com", "onenote.com",
     "skype.com", "visualstudio.com", "github.com", "github.io",
     "githubusercontent.com", "linkedin.com",
@@ -30,7 +30,7 @@ TRUSTED_DOMAINS = {
     "facebook.com", "fb.com", "fbcdn.net", "instagram.com",
     "whatsapp.com", "whatsapp.net", "messenger.com", "meta.com",
     # Amazon
-    "amazon.com", "amazonaws.com", "cloudfront.net",
+    "amazon.com", "cloudfront.net",
     "primevideo.com", "twitch.tv",
     # Other
     "twitter.com", "x.com", "twimg.com",
@@ -52,12 +52,14 @@ TRUSTED_DOMAINS = {
     "fastly.net", "akamaihd.net", "bootstrapcdn.com",
     # Dev
     "npmjs.com", "pypi.org", "crates.io",
-    "vercel.app", "netlify.app", "pages.dev",
 }
 
 SUSPICIOUS_WORDS = [
     "update-password", "banking", "credential", "reset-pass",
     "billing-update", "suspended", "unusual-activity",
+    "verify", "login", "auth", "account", "details", "security", 
+    "wallet", "metamask", "recovery", "locked", "confirm", "support",
+    "apply", "verified", "service", "payment", "invoice", "refund",
     "paymentupdate", "helpdesk", "support-portal",
 ]
 
@@ -72,7 +74,8 @@ TARGET_BRANDS = [
     "facebook", "github", "chase", "bankofamerica", "wellsfargo",
     "binance", "coinbase", "instagram", "twitter", "linkedin",
     "dropbox", "icloud", "outlook", "yahoo", "steam", "discord",
-    "whatsapp", "telegram",
+    "whatsapp", "telegram", "t-mobile", "dpd", "usps", "fedex", 
+    "dhl", "att", "verizon", "metamask", "opensea"
 ]
 
 SUSPICIOUS_TLDS = {"tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest", "sbs", "hu", "site", "online", "cfd", "skin"}
@@ -157,7 +160,7 @@ def analyze_url(url_string: str) -> dict:
 
     for w in SUSPICIOUS_WORDS:
         if w in pathname:
-            score += 10
+            score += 20
             reasons.append(f"Suspicious keyword '{w}' in path")
 
     # 2. Brand typosquatting
@@ -187,6 +190,19 @@ def analyze_url(url_string: str) -> dict:
     if sub_count > 4:
         score += 20
         reasons.append(f"{sub_count} subdomains detected")
+        
+    # 4.5. Abused Free Cloud Hosting (often used for phishing)
+    abused_hosts = {
+        "r2.dev", "pages.dev", "workers.dev", "framer.app", "replit.app", 
+        "backblazeb2.com", "firebaseapp.com", "web.app", "netlify.app", 
+        "vercel.app", "ondigitalocean.app", "s3.amazonaws.com", "glitch.me",
+        "onrender.com", "surge.sh", "herokuapp.com", "pythonanywhere.com",
+        "webcore.windows.net", "000webhostapp.com", "firebaseio.com"
+    }
+    for host in abused_hosts:
+        if hostname.endswith(f".{host}") or hostname == host:
+            score += 35
+            reasons.append(f"Hosted on frequently abused free tier cloud platform ({host})")
 
     # 5. Raw IP
     if re.match(r"^[0-9.]+$", hostname) or re.match(r"^\[.*\]$", hostname):
@@ -199,7 +215,7 @@ def analyze_url(url_string: str) -> dict:
 
     # 6. Suspicious TLD
     if tld in SUSPICIOUS_TLDS:
-        score += 15
+        score += 35
         reasons.append(f"Suspicious TLD '.{tld}'")
 
     # 7. Punycode

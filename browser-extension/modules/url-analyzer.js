@@ -5,72 +5,40 @@
 // TRUSTED DOMAINS — Never flag these as suspicious
 // ============================================================
 const TRUSTED_DOMAINS = new Set([
-  // Google ecosystem
-  "google.com", "google.co.in", "google.co.uk", "google.co.jp", "google.de",
-  "google.fr", "google.com.br", "google.ca", "google.com.au",
-  "googleapis.com", "googleusercontent.com", "googlevideo.com",
+  "google.com", "googleapis.com", "googleusercontent.com", "googlevideo.com",
   "googleadservices.com", "googletagmanager.com", "googlesyndication.com",
-  "gstatic.com", "gvt1.com", "gvt2.com",
-  "youtube.com", "youtu.be", "ytimg.com", "yt.be",
-  "gmail.com", "accounts.google.com",
-  "android.com", "chromium.org", "chrome.google.com",
+  "gstatic.com", "youtube.com", "youtu.be", "ytimg.com",
+  "gmail.com", "android.com", "chromium.org",
+  "firebase.google.com", "withgoogle.com",
   "blogger.com", "blogspot.com",
-  "firebase.google.com", "firebaseio.com",
-  "withgoogle.com", "google.org",
-
-  // Microsoft ecosystem
   "microsoft.com", "microsoftonline.com", "live.com", "outlook.com",
   "office.com", "office365.com", "windows.com", "windowsupdate.com",
-  "msn.com", "bing.com", "azure.com", "azurewebsites.net",
+  "msn.com", "bing.com", "azure.com",
   "sharepoint.com", "onedrive.com", "onenote.com",
-  "skype.com", "teams.microsoft.com",
-  "visualstudio.com", "github.com", "github.io", "githubusercontent.com",
-  "linkedin.com", "linkedin-ei.com",
-
-  // Apple ecosystem
-  "apple.com", "icloud.com", "icloud-content.com", "mzstatic.com",
-  "apple-dns.net", "cdn-apple.com", "itunes.apple.com",
-
-  // Meta / Facebook
+  "skype.com", "visualstudio.com", "github.com", "github.io",
+  "githubusercontent.com", "linkedin.com",
+  "apple.com", "icloud.com", "mzstatic.com",
   "facebook.com", "fb.com", "fbcdn.net", "instagram.com",
-  "whatsapp.com", "whatsapp.net", "messenger.com",
-  "meta.com", "oculus.com",
-
-  // Amazon ecosystem
-  "amazon.com", "amazon.co.uk", "amazon.in", "amazon.de", "amazon.co.jp",
-  "amazonaws.com", "amazonws.com", "cloudfront.net",
+  "whatsapp.com", "whatsapp.net", "messenger.com", "meta.com",
+  "amazon.com", "cloudfront.net",
   "primevideo.com", "twitch.tv",
-
-  // Other major platforms
   "twitter.com", "x.com", "twimg.com",
-  "netflix.com", "nflxvideo.net", "nflxext.com",
+  "netflix.com", "nflxvideo.net",
   "paypal.com", "paypalobjects.com",
-  "yahoo.com", "yahoo.co.jp", "yimg.com",
+  "yahoo.com", "yimg.com",
   "reddit.com", "redd.it", "redditstatic.com",
   "wikipedia.org", "wikimedia.org",
   "stackoverflow.com", "stackexchange.com",
   "discord.com", "discordapp.com", "discord.gg",
   "telegram.org", "t.me",
-  "zoom.us", "zoomgov.com",
-  "spotify.com", "scdn.co",
+  "zoom.us", "spotify.com", "scdn.co",
   "dropbox.com", "dropboxusercontent.com",
-  "steam-chat.com", "steamcommunity.com", "steampowered.com", "steamstatic.com",
-
-  // Banking / Finance (major)
+  "steampowered.com", "steamcommunity.com",
   "chase.com", "bankofamerica.com", "wellsfargo.com",
-  "citibank.com", "capitalone.com", "usbank.com",
-  "coinbase.com", "binance.com", "kraken.com",
-
-  // CDNs & Infrastructure
-  "cloudflare.com", "cdnjs.cloudflare.com", "cdn.jsdelivr.net",
-  "unpkg.com", "fastly.net", "akamaihd.net", "akamai.net",
-  "bootstrapcdn.com", "fontawesome.com",
-
-  // Dev tools
-  "npmjs.com", "pypi.org", "crates.io",
-  "vercel.app", "netlify.app", "pages.dev",
-  "heroku.com", "render.com",
-  "codepen.io", "jsfiddle.net", "replit.com"
+  "coinbase.com", "binance.com",
+  "cloudflare.com", "cdn.jsdelivr.net", "unpkg.com",
+  "fastly.net", "akamaihd.net", "bootstrapcdn.com",
+  "npmjs.com", "pypi.org", "crates.io"
 ]);
 
 // ============================================================
@@ -79,6 +47,9 @@ const TRUSTED_DOMAINS = new Set([
 const SUSPICIOUS_WORDS = [
   "update-password", "banking", "credential", "reset-pass",
   "billing-update", "suspended", "unusual-activity",
+  "verify", "login", "auth", "account", "details", "security", 
+  "wallet", "metamask", "recovery", "locked", "confirm", "support",
+  "apply", "verified", "service", "payment", "invoice", "refund",
   "paymentupdate", "helpdesk", "support-portal"
 ];
 
@@ -95,7 +66,8 @@ const TARGET_BRANDS = [
   "facebook", "github", "chase", "bankofamerica", "wellsfargo",
   "binance", "coinbase", "instagram", "twitter", "linkedin",
   "dropbox", "icloud", "outlook", "yahoo", "steam", "discord",
-  "whatsapp", "telegram"
+  "whatsapp", "telegram", "t-mobile", "dpd", "usps", "fedex", 
+  "dhl", "att", "verizon", "metamask", "opensea"
 ];
 
 // Official TLDs for each brand (extended)
@@ -126,6 +98,8 @@ const BRAND_OFFICIAL_TLDS = {
   "whatsapp": ["com", "net"],
   "telegram": ["org"]
 };
+
+const SUSPICIOUS_TLDS = new Set(["tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest", "sbs", "hu", "site", "online", "cfd", "skin"]);
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -237,10 +211,10 @@ export function analyzeURL(urlString) {
     });
 
     // Path keywords — only the high-confidence ones
-    SUSPICIOUS_WORDS.forEach(word => {
-      if (pathname.includes(word)) {
-        score += 10;
-        reasons.push(`Suspicious keyword '${word}' in path`);
+    SUSPICIOUS_WORDS.forEach(w => {
+      if (pathname.includes(w)) {
+        score += 20;
+        reasons.push(`Suspicious keyword '${w}' in path`);
       }
     });
 
@@ -272,10 +246,27 @@ export function analyzeURL(urlString) {
     }
 
     // ---- 4. Excessive subdomains ----
-    const subdomainCount = domainParts.length - 2;
-    if (subdomainCount > 4) {
+    const subCount = domainParts.length - 2;
+    if (subCount > 4) {
       score += 20;
-      reasons.push(`${subdomainCount} subdomains detected (DNS tunnel / phishing indicator)`);
+      reasons.push(`${subCount} subdomains detected`);
+    }
+
+    // ---- 4.5. Abused Free Cloud Hosting ----
+    const abusedHosts = new Set([
+        "r2.dev", "pages.dev", "workers.dev", "framer.app", "replit.app", 
+        "backblazeb2.com", "firebaseapp.com", "web.app", "netlify.app", 
+        "vercel.app", "ondigitalocean.app", "s3.amazonaws.com", "glitch.me",
+        "onrender.com", "surge.sh", "herokuapp.com", "pythonanywhere.com",
+        "webcore.windows.net", "000webhostapp.com", "firebaseio.com"
+    ]);
+    
+    for (const host of abusedHosts) {
+      if (hostname.endsWith(`.${host}`) || hostname === host) {
+        score += 35;
+        reasons.push(`Hosted on frequently abused free tier cloud platform (${host})`);
+        break;
+      }
     }
 
     // ---- 5. Raw IP address hostname ----
@@ -290,10 +281,9 @@ export function analyzeURL(urlString) {
     }
 
     // ---- 6. Suspicious TLDs ----
-    const suspiciousTLDs = ["tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "work", "icu", "cam", "rest", "sbs", "hu", "site", "online", "cfd", "skin"];
-    if (suspiciousTLDs.includes(tld)) {
-      score += 15;
-      reasons.push(`Suspicious TLD '.${tld}' often used in phishing`);
+    if (SUSPICIOUS_TLDS.has(tld)) {
+      score += 35;
+      reasons.push(`Suspicious TLD '.${tld}'`);
     }
 
     // ---- 7. Punycode / IDN homoglyph ----
