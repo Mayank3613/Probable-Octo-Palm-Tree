@@ -4,6 +4,16 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
+## [2026-05-31] Phase 7 — Attribution Engine Core
+
+### Added
+- **Attribution Engine Module:** Created a standalone `attribution-engine` package to map out attacker infrastructure.
+- **TLS Certificate Correlator:** Built `cert_correlator.py` which uses raw sockets and the `cryptography` library to extract Subject Alternative Names (SANs) from X.509 certificates to link related malicious domains.
+- **CDN Bypass Logic:** Built `backend_locator.py` using `dnspython` to query unmasked subdomains (like `mail.*`, `ftp.*`) and detect Cloudflare/Fastly masking, allowing us to find the true origin server IP.
+- **IP & ASN Clustering:** Built `ip_cluster.py` using `ipwhois` to group lists of malicious IPs by their Autonomous System Number (ASN) and BGP routes, automatically assigning risk scores to known bulletproof hosting providers (like Choopa/Vultr, OVH).
+
+---
+
 ## [2026-05-31] Phase 6 — Professional Next.js Threat Dashboard
 
 ### Added
