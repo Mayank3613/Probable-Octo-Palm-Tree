@@ -4,6 +4,17 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
+## [2026-05-31] Phase 6 — Professional Next.js Threat Dashboard
+
+### Added
+- **Modern Next.js Frontend:** Initialized a standalone `dashboard/` directory using Next.js 14+ with App Router.
+- **TailwindCSS & Glassmorphism:** Implemented a state-of-the-art "Cyber Security Dark Mode" aesthetic with deep blacks, glowing neon accents, and heavy glassmorphic background blurs.
+- **Live Telemetry Engine:** Built the `app/page.tsx` dashboard to hook directly into the FastAPI `alerts/live` endpoint, creating a live, animated stream of network interceptions.
+- **Dynamic KPI Components:** Designed beautiful glassmorphic statistical cards (Total Threats, Critical Alerts, High Severity) that fetch real-time analytics from the `alerts/stats` backend.
+- **Component Architecture:** Created reusable React components including a persistent `Sidebar.tsx` for fast navigation and a modular `ThreatCard.tsx` that intelligently formats styling based on threat severity.
+
+---
+
 ## [2026-05-30] Phase 5 — Mass Threat Testing & Heuristics Upgrade
 
 ### Added

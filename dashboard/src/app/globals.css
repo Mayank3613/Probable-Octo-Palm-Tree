@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cyber-bg: #030712;
+  --color-cyber-panel: #111827;
+  --color-cyber-accent: #10b981;
+  --color-cyber-danger: #ef4444;
+  --color-cyber-warning: #f59e0b;
+  --color-cyber-text: #f3f4f6;
+  --color-cyber-muted: #9ca3af;
+  --color-cyber-border: #374151;
+  --color-cyber-glow: rgba(16, 185, 129, 0.15);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-cyber-bg);
+    color: var(--color-cyber-text);
+    font-family: ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(55, 65, 81, 0.5);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+  
+  .glass-panel-accent {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-cyber-accent);
+    box-shadow: 0 0 15px var(--color-cyber-glow);
+  }
+  
+  .glass-panel-danger {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-cyber-danger);
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
+  }
+  
+  .glow-text {
+    text-shadow: 0 0 10px var(--color-cyber-glow);
+  }
+  
+  .glow-text-danger {
+    text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  }
+}
