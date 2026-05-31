@@ -3,6 +3,31 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-05-31] Updated Web Extention-modules
+### Updated Url Analyser:
+- Added Features:
+- **Domain Age Detection:** Checks how old a domain is using WHOIS/RDAP data to identify newly created and suspicious websites.
+- **Threat Intelligence API:** Verifies URLs and domains using real-time threat intelligence databases and malicious URL feeds.
+- **Redirect Tracking:** Tracks URL redirections to detect hidden malicious websites and phishing redirects.
+- **Weighted Scoring System:** Calculates a risk score based on multiple security factors to improve threat detection accuracy.
+- **HTML & JavaScript Analyzer:** Analyzes webpage HTML and JavaScript to detect suspicious scripts, hidden iframes, and malicious behavior.
+### Updated logger:
+- **Earlier Process of Transition:** Event -> Rate Limit(10) -> Send Message
+- **Updated Process of Transition:** Event -> Duplication -> Priority Queue -> Batch Scheduler -> Token Bucket -> Batch Send Message
+- It has been updated with `intelligent duplicate filtering`, `priority-based event handling`, `batch scheduling`, and `token bucket rate limiting` to improve logging efficiency and performance.
+- These enhancements reduce redundant logs, optimize resource usage during high traffic, and ensure critical security events are processed faster and more reliably.
+### Updated Session Monitoring:
+- The Session & Storage Monitoring Module was enhanced with `advanced cookie hooks`, `browser storage tracking`, `JWT token analysis`, `exfiltration correlation`, and `session fixation detection` mechanisms.
+- These improvements strengthen browser-side security by monitoring sensitive session activity, detecting unauthorized data access, and identifying suspicious authentication or data theft behaviors in real time.
+### Updated Download Scanner:
+- The Download Scanner Module was enhanced with `MIME validation`, `Unicode RTL detection`, `VirusTotal hash lookup`, `archive inspection`, and `domain reputation correlation` capabilities.
+- These enhancements help identify disguised malicious files, detect hidden threats inside archives, and strengthen threat intelligence-based file and domain analysis.
+- ### Updated Api intercaptor:
+- The Api Interceptor Module was upgraded with `fetch interception`, `XMLHttpRequest hooks`, `request body inspection`, and `threat correlation engine` capabilities for deeper traffic analysis.
+- These enhancements improve the detection of suspicious outbound requests, malicious data transfers, and coordinated browser-based threat activities in real time.
+### Updated Threat Detector:
+- The Threat Detection Module was enhanced with `attribute mutation monitoring`, `network request monitoring`, and `Shadow DOM inspection` capabilities for advanced webpage analysis.
+- These updates help detect hidden malicious DOM changes, suspicious network activity, and concealed threats operating inside Shadow DOM elements in real time.
 
 ## [2026-05-31] Phase 8 — Cross-Platform Universal Launcher
 

@@ -1,343 +1,217 @@
-// Probable-Octo-Palm-Tree Threat Detector Module (runs in Content Script scope)
-// Real-time DOM threat scanner with MutationObserver support
+// OctoPlamTree Threat Detector v2.0 — Content Script scope
+(function () {
+  const seen = new Set();
+  const networkLog = [];
+  const knownShadowRoots = new WeakSet();
 
-(function() {
-  // Track already-reported threats to prevent duplicates
-  const reportedThreats = new Set();
+  const MINER_KW   = ["coinhive","cryptoloot","deepminer","jsecoin","webminerPool","miner.start","cryptonight","CoinHive.Anonymous"];
+  const BAD_TLDS   = ["tk","ml","ga","cf","gq","xyz","top","buzz","club","icu"];
+  const NET_PAT    = [/coinhive/i,/cryptoloot/i,/deepminer/i,/jsecoin/i,/webminer/i,/base64[,;]/i,/\.onion/i,/ngrok\.io/i,/\.(tk|ml|ga|cf|gq|xyz|top|buzz)(\/|$)/i];
+  const CRED_PAT   = [/\/login/i,/\/signin/i,/\/auth/i,/\/account/i,/\/credential/i,/\/password/i,/\/wallet/i,/\/session/i];
+  const DYNA_CALLS = ["eval","unescape","String.fromCharCode","atob","document.write","Function(","setTimeout(atob","decodeURIComponent"];
+  const WATCH_TAGS = {script:["src","type","integrity"],iframe:["src","srcdoc","sandbox"],a:["href","ping"],form:["action","formaction"],input:["type","formaction"],meta:["http-equiv","content"],link:["href","rel"],object:["data"],embed:["src"],base:["href"]};
 
-  // Trusted domains — skip fake login form and sensitive DOM checks on these
-  const TRUSTED_ROOT_DOMAINS = new Set([
-    "google.com", "google.co.in", "google.co.uk", "google.co.jp",
-    "youtube.com", "gmail.com", "googleapis.com",
-    "microsoft.com", "live.com", "outlook.com", "office.com",
-    "microsoftonline.com", "bing.com", "azure.com",
-    "github.com", "linkedin.com",
-    "apple.com", "icloud.com",
-    "facebook.com", "instagram.com", "whatsapp.com", "meta.com",
-    "amazon.com", "amazonaws.com",
-    "twitter.com", "x.com",
-    "netflix.com", "paypal.com", "yahoo.com",
-    "reddit.com", "wikipedia.org", "stackoverflow.com",
-    "discord.com", "telegram.org", "zoom.us",
-    "spotify.com", "dropbox.com",
-    "steam-chat.com", "steampowered.com", "steamcommunity.com",
-    "chase.com", "bankofamerica.com", "wellsfargo.com",
-    "coinbase.com", "binance.com",
-    "cloudflare.com", "fastly.net", "akamai.net"
-  ]);
+  const alert = (type, details, severity) => ({ type, details, severity });
+  const tld   = h => h.split(".").pop();
+  const xhost = url => { try { return new URL(url, location.href).hostname !== location.hostname; } catch { return false; } };
 
-  function getRootDomain(hostname) {
-    const parts = hostname.split('.');
-    if (parts.length <= 2) return hostname;
-    // Handle two-part TLDs like co.uk, co.in, co.jp, com.au, com.br
-    const twoPartTLDs = ["co.uk", "co.in", "co.jp", "com.au", "com.br", "co.nz", "org.uk"];
-    const lastTwo = parts.slice(-2).join('.');
-    if (twoPartTLDs.includes(lastTwo)) {
-      return parts.slice(-3).join('.');
+  function emit(a) {
+    const k = `${a.type}::${a.details.slice(0,80)}`;
+    if (seen.has(k)) return;
+    seen.add(k);
+    if (a.type.startsWith("net:")) networkLog.push(a);
+    if (window.OctoLogger) try { OctoLogger.log(a.type, a.details, a.severity); } catch {}
+  }
+
+  // ── Network monitoring ──────────────────────────────────────────────────────
+  function analyzeReq(url, method, body) {
+    const out = [];
+    if (NET_PAT.some(r => r.test(url)))
+      out.push(alert("Suspicious Network Request", `${method} → ${url}`, "high"));
+    try {
+      const u = new URL(url, location.href);
+      if (u.hostname !== location.hostname && /^(POST|PUT|PATCH)$/i.test(method)) {
+        out.push(alert(
+          CRED_PAT.some(r => r.test(u.pathname)) ? "Credential Exfiltration Request" : "Cross-Origin Data Submission",
+          `${method} → ${u.hostname}${u.pathname}`,
+          CRED_PAT.some(r => r.test(u.pathname)) ? "critical" : "medium"
+        ));
+      }
+      if (body && body.length > 200) {
+        const ratio = (body.match(/[A-Za-z0-9+/=]{20,}/g)||[]).join("").length / body.length;
+        if (ratio > 0.7) out.push(alert("Encoded Request Payload", `${method} → ${url} (b64 ratio ${(ratio*100).toFixed(0)}%)`, "medium"));
+      }
+    } catch {}
+    return out;
+  }
+
+  const _fetch = fetch;
+  window.fetch = function(input, init = {}) {
+    const url = typeof input === "string" ? input : (input?.url ?? String(input));
+    analyzeReq(url, (init.method||"GET").toUpperCase(), init.body ? String(init.body) : null).forEach(emit);
+    return _fetch.apply(this, arguments);
+  };
+
+  const _open = XMLHttpRequest.prototype.open, _send = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.open = function(m, u) { this._om = m; this._ou = u; return _open.apply(this, arguments); };
+  XMLHttpRequest.prototype.send = function(body) {
+    analyzeReq(this._ou||"", this._om||"GET", body ? String(body) : null).forEach(emit);
+    return _send.apply(this, arguments);
+  };
+
+  // ── Shadow DOM inspection ───────────────────────────────────────────────────
+  function inspectShadow(root, host) {
+    if (!root || knownShadowRoots.has(root)) return;
+    knownShadowRoots.add(root);
+    const id = host ? (host.id ? `#${host.id}` : host.tagName.toLowerCase()) : "?";
+
+    for (const s of root.querySelectorAll("script")) {
+      const src = s.getAttribute("src")||"", c = s.innerHTML;
+      if (MINER_KW.some(k => src.includes(k)||c.includes(k)))
+        emit(alert("Shadow DOM Cryptominer", `Miner in shadow root of <${id}>`, "critical"));
+      if (c.length > 5000 && DYNA_CALLS.filter(t => c.includes(t)).length >= 2)
+        emit(alert("Shadow DOM Obfuscated Script", `Obfuscated script (${c.length}ch) in <${id}>`, "high"));
     }
-    return parts.slice(-2).join('.');
+
+    const hidden = [...root.querySelectorAll("iframe")].filter(f => {
+      const s = getComputedStyle(f);
+      return s.display==="none"||s.visibility==="hidden"||+s.opacity===0||f.offsetWidth<=2||f.offsetHeight<=2;
+    });
+    if (hidden.length) emit(alert("Shadow DOM Hidden Iframe", `${hidden.length} hidden iframe(s) in <${id}>`, "high"));
+
+    if (root.querySelector('input[type="password"]'))
+      emit(alert("Shadow DOM Login Form", `Password input in shadow root of <${id}>`, "high"));
+
+    if (root.mode === "closed")
+      emit(alert("Closed Shadow Root", `Uninspectable closed root on <${id}>`, "medium"));
+
+    for (const el of root.querySelectorAll("*")) if (el.shadowRoot) inspectShadow(el.shadowRoot, el);
   }
 
-  function isOnTrustedDomain() {
-    const root = getRootDomain(window.location.hostname);
-    return TRUSTED_ROOT_DOMAINS.has(root);
-  }
+  const _attachShadow = Element.prototype.attachShadow;
+  Element.prototype.attachShadow = function(init) {
+    const root = _attachShadow.call(this, init);
+    setTimeout(() => inspectShadow(root, this), 0);
+    return root;
+  };
 
-  function areSameOrganization(host1, host2) {
-    return getRootDomain(host1) === getRootDomain(host2);
-  }
-
-  function hashThreat(type, detail) {
-    return `${type}::${detail.substring(0, 80)}`;
-  }
-
-  const ThreatDetector = {
-
-    // ---- 1. Script Analysis ----
-    scanScripts: function() {
-      const scripts = document.getElementsByTagName("script");
-      const results = [];
-
-      for (let script of scripts) {
-        const content = script.innerHTML;
-        const src = script.getAttribute("src") || "";
-
-        // Cryptominer signatures
-        const minerKeywords = [
-          "coinhive", "cryptoloot", "deepminer", "jsecoin", "webminerPool",
-          "CoinHive.Anonymous", "wmp.sandbox", "miner.start", "cryptonight"
-        ];
-        const hasMiner = minerKeywords.some(kw =>
-          src.toLowerCase().includes(kw.toLowerCase()) || content.includes(kw)
-        );
-        if (hasMiner) {
-          results.push({
-            type: "Cryptominer Script",
-            details: `Detected miner script signature: ${src || "Inline Script"}`,
-            severity: "critical"
-          });
-        }
-
-        // Obfuscated/malicious large scripts
-        if (content.length > 8000) {
-          const suspiciousCalls = [
-            "eval", "unescape", "String.fromCharCode", "atob",
-            "document.write", "Function(", "setTimeout(atob", "decodeURIComponent"
-          ].filter(term => content.includes(term));
-
-          if (suspiciousCalls.length >= 2) {
-            results.push({
-              type: "Obfuscated Javascript",
-              details: `Large script (${content.length} chars) using dynamic execution: [${suspiciousCalls.join(", ")}]`,
-              severity: "high"
-            });
-          }
-        }
-
-        // External script from suspicious TLD
-        if (src) {
-          try {
-            const scriptUrl = new URL(src, window.location.href);
-            const host = scriptUrl.hostname;
-            const suspiciousTLDs = ["tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz"];
-            const tld = host.split('.').pop();
-            if (suspiciousTLDs.includes(tld)) {
-              results.push({
-                type: "Suspicious External Script",
-                details: `Script loaded from suspicious TLD: ${src}`,
-                severity: "medium"
-              });
-            }
-          } catch (e) { /* ignore invalid URLs */ }
-        }
-      }
-
-      return results;
-    },
-
-    // ---- 2. Hidden Iframe Detection ----
-    scanIframes: function() {
-      const iframes = document.getElementsByTagName("iframe");
-      const results = [];
-      let hiddenCount = 0;
-      const hiddenSources = [];
-
-      for (let iframe of iframes) {
-        const style = window.getComputedStyle(iframe);
-        const isHidden =
-          style.display === "none" ||
-          style.visibility === "hidden" ||
-          parseFloat(style.opacity) === 0 ||
-          iframe.offsetWidth <= 2 ||
-          iframe.offsetHeight <= 2 ||
-          parseInt(style.left) < -500 ||
-          parseInt(style.top) < -500;
-
-        if (isHidden) {
-          hiddenCount++;
-          hiddenSources.push(iframe.src || "about:blank");
-        }
-      }
-
-      if (hiddenCount >= 3) {
-        results.push({
-          type: "Excessive Hidden Iframes",
-          details: `${hiddenCount} invisible iframes found (drive-by exploit/clickjacking vector). Sources: ${hiddenSources.slice(0, 3).join(", ")}`,
-          severity: "high"
-        });
-      } else if (hiddenCount >= 1) {
-        results.push({
-          type: "Hidden Iframe Detected",
-          details: `${hiddenCount} invisible iframe(s) found: ${hiddenSources.join(", ")}`,
-          severity: "medium"
-        });
-      }
-
-      return results;
-    },
-
-    // ---- 3. Clickjacking Overlay Detection ----
-    scanOverlays: function() {
-      const results = [];
-      const allElements = document.querySelectorAll("div, section, aside, span");
-
-      for (let el of allElements) {
-        const style = window.getComputedStyle(el);
-
-        if ((style.position === "fixed" || style.position === "absolute") &&
-            parseInt(style.zIndex) > 5000 &&
-            parseFloat(style.opacity) < 0.3 &&
-            parseFloat(style.opacity) > 0.0) {
-
-          const rect = el.getBoundingClientRect();
-          const screenArea = window.innerWidth * window.innerHeight;
-          const overlayArea = rect.width * rect.height;
-
-          if (overlayArea > screenArea * 0.6) {
-            results.push({
-              type: "Clickjacking Overlay",
-              details: `Semi-transparent layer spanning ${Math.round((overlayArea / screenArea) * 100)}% of viewport (z-index: ${style.zIndex}, opacity: ${style.opacity})`,
-              severity: "high"
-            });
-            break;
-          }
-        }
-      }
-
-      return results;
-    },
-
-    // ---- 4. Fake Login Form Detection ----
-    scanFakeLoginForms: function() {
-      const results = [];
-
-      // SKIP on trusted domains — Google, YouTube, Gmail, etc. all have legitimate login forms
-      if (isOnTrustedDomain()) return results;
-
-      const forms = document.querySelectorAll("form");
-      const passwordInputs = document.querySelectorAll('input[type="password"]');
-
-      if (passwordInputs.length === 0) return results;
-
-      // Check if this page is NOT served over HTTPS
-      if (window.location.protocol === "http:") {
-        results.push({
-          type: "Insecure Login Form",
-          details: `Password field detected on non-HTTPS page (${window.location.hostname}). Credentials will be transmitted in cleartext.`,
-          severity: "critical"
-        });
-      }
-
-      // Check if form submits to a DIFFERENT organization's domain (credential exfiltration)
-      for (let form of forms) {
-        const action = form.getAttribute("action");
-        if (!action) continue;
-
+  // ── Attribute mutation analysis ─────────────────────────────────────────────
+  function analyzeAttr(tag, attr, oldVal, newVal, el) {
+    const out = [];
+    if (["src","href","action","data"].includes(attr) && newVal) {
+      if (newVal.startsWith("data:"))
+        out.push(alert("Data URI Injection", `<${tag}> ${attr} set to data: URI`, "high"));
+      else if (xhost(newVal)) {
         try {
-          const actionUrl = new URL(action, window.location.href);
-          // Compare root domains — accounts.google.com submitting to google.com is fine
-          if (!areSameOrganization(actionUrl.hostname, window.location.hostname)) {
-            const hasPassword = form.querySelector('input[type="password"]');
-            if (hasPassword) {
-              results.push({
-                type: "Credential Exfiltration Form",
-                details: `Login form submits credentials to external domain: ${actionUrl.hostname} (current: ${window.location.hostname})`,
-                severity: "critical"
-              });
-            }
-          }
-        } catch (e) { /* ignore malformed action URLs */ }
+          const u = new URL(newVal, location.href);
+          out.push(alert("Suspicious Attribute Mutation", `<${tag}> ${attr} → ${u.href}${oldVal?` (was:${oldVal})`:""}`, BAD_TLDS.includes(tld(u.hostname))?"high":"medium"));
+        } catch {}
       }
+    }
+    if (tag==="script" && attr==="type" && oldVal && newVal!==oldVal)
+      out.push(alert("Script Type Mutation", `<script> type: "${oldVal}" → "${newVal}"`, "medium"));
+    if (tag==="meta" && attr==="http-equiv" && /refresh/i.test(newVal))
+      out.push(alert("Meta Refresh Injection", `<meta http-equiv="refresh"> set`, "high"));
+    if (tag==="meta" && attr==="content" && el.getAttribute("http-equiv")==="refresh")
+      out.push(alert("Meta Refresh Content Changed", `refresh content → "${newVal}"`, "medium"));
+    if (tag==="base" && attr==="href" && newVal)
+      out.push(alert("Base URL Hijack", `<base href> → "${newVal}"`, "critical"));
+    if (attr==="formaction" && newVal && xhost(newVal))
+      try { out.push(alert("Form Action Hijack", `formaction → ${new URL(newVal,location.href).hostname}`, "critical")); } catch {}
+    if (attr==="integrity" && oldVal && !newVal)
+      out.push(alert("SRI Integrity Removed", `<${tag}> integrity attribute removed`, "high"));
+    return out;
+  }
 
-      // Check for suspicious form on phishing TLD
-      if (passwordInputs.length > 0 && forms.length > 0) {
-        const emailInputs = document.querySelectorAll('input[type="email"], input[name*="email"], input[name*="user"], input[placeholder*="email"], input[placeholder*="Email"]');
-        if (emailInputs.length > 0) {
-          const hostname = window.location.hostname;
-          const suspiciousTLDs = ["tk", "ml", "ga", "cf", "gq", "xyz", "top", "buzz", "club", "icu"];
-          const tld = hostname.split('.').pop();
-          if (suspiciousTLDs.includes(tld)) {
-            results.push({
-              type: "Phishing Login Page",
-              details: `Login form with email + password fields found on suspicious TLD (.${tld})`,
-              severity: "critical"
-            });
-          }
-        }
-      }
-
-      return results;
+  // ── Structural threat scans ─────────────────────────────────────────────────
+  const Scans = {// script detection
+    scripts() {
+      const out = [];
+      for (const s of document.scripts) {
+        const src = s.getAttribute("src")||"", c = s.innerHTML;
+        if (MINER_KW.some(k => src.toLowerCase().includes(k.toLowerCase())||c.includes(k)))//cryptominer signature
+          out.push(alert("Cryptominer Script", `Miner signature: ${src||"inline"}`, "critical"));
+        if (c.length > 8000 && DYNA_CALLS.filter(t => c.includes(t)).length >= 2)//  obfuscation heuristic
+          out.push(alert("Obfuscated Javascript", `Large script (${c.length}ch) with dynamic exec`, "high"));
+        if (src) try { const u=new URL(src,location.href); if(BAD_TLDS.includes(tld(u.hostname))) out.push(alert("Suspicious External Script",`Script from suspicious TLD: ${src}`,"medium")); } catch {}
+      }//external script TLD check
+      return out;
     },
-
-    // ---- 5. Suspicious document.write usage ----
-    scanDocumentWrite: function() {
-      const results = [];
-      const scripts = document.getElementsByTagName("script");
-      for (let script of scripts) {
-        const content = script.innerHTML;
-        if (content.includes("document.write") && content.length > 500) {
-          results.push({
-            type: "Dynamic Page Rewrite",
-            details: `Script uses document.write() to dynamically rewrite page content (${content.length} chars)`,
-            severity: "medium"
-          });
-        }
-      }
-      return results;
-    },
-
-    // Aggregate all scans
-    runScan: function() {
-      const alerts = [
-        ...this.scanScripts(),
-        ...this.scanIframes(),
-        ...this.scanOverlays(),
-        ...this.scanFakeLoginForms(),
-        ...this.scanDocumentWrite()
-      ];
-
-      // Deduplicate: only return alerts not already reported
-      const newAlerts = alerts.filter(a => {
-        const key = hashThreat(a.type, a.details);
-        if (reportedThreats.has(key)) return false;
-        reportedThreats.add(key);
-        return true;
+    iframes() {// hidden iframe detection
+      const hidden = [...document.getElementsByTagName("iframe")].filter(f => {
+        const s = getComputedStyle(f);
+        return s.display==="none"||s.visibility==="hidden"||+s.opacity===0||f.offsetWidth<=2||f.offsetHeight<=2||+s.left<-500||+s.top<-500;
       });
-
-      return newAlerts;
+      if (!hidden.length) return [];
+      return [alert(hidden.length>=3?"Excessive Hidden Iframes":"Hidden Iframe Detected", `${hidden.length} invisible iframe(s): ${hidden.slice(0,3).map(f=>f.src||"about:blank").join(", ")}`, hidden.length>=3?"high":"medium")];
+    },
+    overlays() {// clickjacking overlay detection
+      for (const el of document.querySelectorAll("div,section,aside,span")) {
+        const s = getComputedStyle(el), op = +s.opacity;
+        if ((s.position==="fixed"||s.position==="absolute") && +s.zIndex>5000 && op>0 && op<0.3) {
+          const r=el.getBoundingClientRect(), pct=r.width*r.height/(innerWidth*innerHeight);
+          if (pct>0.6) return [alert("Clickjacking Overlay",`Semi-transparent overlay: ${(pct*100).toFixed(0)}% viewport (z:${s.zIndex} op:${s.opacity})`,"high")];
+        }
+      }
+      return [];
+    },
+    forms() {// form validation
+      const out = [];
+      const pw = document.querySelectorAll('input[type="password"]');
+      if (!pw.length) return out;
+      if (location.protocol==="http:") out.push(alert("Insecure Login Form",`Password field on HTTP (${location.hostname})`,"critical"));
+      for (const f of document.forms) {
+        const a = f.getAttribute("action"); if (!a) continue;
+        try { const u=new URL(a,location.href); if(u.hostname!==location.hostname&&f.querySelector('[type="password"]')) out.push(alert("Credential Exfiltration Form",`Form POSTs to ${u.hostname}`,"critical")); } catch {}
+      }
+      const email = document.querySelector('input[type="email"],[name*="email"],[name*="user"],[placeholder*="email" i]');
+      if (email && BAD_TLDS.includes(tld(location.hostname))) out.push(alert("Phishing Login Page",`Login form on suspicious TLD (.${tld(location.hostname)})`,"critical"));
+      return out;
+    },
+    docWrite() {// dynamic page rewrite detection
+      return [...document.scripts].filter(s=>s.innerHTML.includes("document.write")&&s.innerHTML.length>500)
+        .map(s=>alert("Dynamic Page Rewrite",`document.write() in script (${s.innerHTML.length}ch)`,"medium"));
+    },
+    shadows() {// shadow DOM inspection
+      for (const el of document.querySelectorAll("*")) if(el.shadowRoot) inspectShadow(el.shadowRoot,el);
+      return [];
     }
   };
 
-  // ---- MutationObserver: Real-time DOM change monitoring ----
-  function setupMutationObserver() {
-    const observer = new MutationObserver((mutations) => {
-      let shouldScan = false;
+  const ThreatDetector = {
+    runScan() {
+      return [...Scans.scripts(),...Scans.iframes(),...Scans.overlays(),...Scans.forms(),...Scans.docWrite(),...Scans.shadows()]
+        .filter(a=>{ const k=`${a.type}::${a.details.slice(0,80)}`; if(seen.has(k))return false; seen.add(k); return true; });
+    },
+    getNetworkLog: () => [...networkLog],
+  };
 
-      for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType !== Node.ELEMENT_NODE) continue;
-          const tag = node.tagName ? node.tagName.toLowerCase() : "";
-          // Trigger scan if new script, iframe, form, or input[type=password] is injected
-          if (tag === "script" || tag === "iframe" || tag === "form" ||
-              tag === "object" || tag === "embed" ||
-              (tag === "input" && node.type === "password")) {
-            shouldScan = true;
-            break;
-          }
-          // Also check descendants
-          if (node.querySelector && node.querySelector("script, iframe, form, input[type='password'], object, embed")) {
-            shouldScan = true;
-            break;
-          }
-        }
-        if (shouldScan) break;
-      }
-
-      if (shouldScan && window.OctoLogger) {
-        try {
-          const alerts = ThreatDetector.runScan();
-          alerts.forEach(alert => {
-            window.OctoLogger.log(alert.type, alert.details, alert.severity);
-          });
-        } catch (e) {
-          console.debug("MutationObserver scan error:", e);
+  // ── MutationObserver ────────────────────────────────────────────────────────
+  const RISKY = "script,iframe,form,object,embed";
+  new MutationObserver(mutations => {
+    let scan = false;
+    for (const m of mutations) {
+      if (m.type === "childList") {
+        for (const n of m.addedNodes) {
+          if (n.nodeType !== 1) continue;
+          const tag = n.tagName?.toLowerCase();
+          if (RISKY.includes(tag)||(tag==="input"&&n.type==="password")) scan = true;
+          if (n.querySelector?.(RISKY+",input[type='password']")) scan = true;
+          for (const h of [n,...(n.querySelectorAll?.("*")||[])]) if(h.shadowRoot) inspectShadow(h.shadowRoot,h);
         }
       }
-    });
+      if (m.type === "attributes") {
+        const el=m.target, tag=el.tagName?.toLowerCase(), watched=WATCH_TAGS[tag];
+        if (watched?.includes(m.attributeName))
+          analyzeAttr(tag, m.attributeName, m.oldValue, el.getAttribute(m.attributeName), el).forEach(emit);
+      }
+    }
+    if (scan) ThreatDetector.runScan().forEach(a => { if(window.OctoLogger) try{OctoLogger.log(a.type,a.details,a.severity);}catch{} });
+  }).observe(document.documentElement, {
+    childList: true, subtree: true,
+    attributes: true, attributeOldValue: true,
+    attributeFilter: ["src","href","action","formaction","data","type","integrity","http-equiv","content","srcdoc","sandbox"],
+  });
 
-    observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true
-    });
-  }
-
-  // Start MutationObserver once DOM is available
-  if (document.documentElement) {
-    setupMutationObserver();
-  } else {
-    document.addEventListener("DOMContentLoaded", setupMutationObserver);
-  }
-
-  // Expose to content script scope
   window.OctoThreatDetector = ThreatDetector;
 })();
