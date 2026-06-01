@@ -1,0 +1,31 @@
+/* ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
+   All colour, shadow, and typography values live here.
+   Never hardcode hex/rgba values in other CSS files — reference these vars.
+─────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg:      #030712;
+  --panel:   #0d1117;
+  --panel2:  #111827;
+  --border:  #1f2937;
+
+  /* Accent palette */
+  --accent:  #10b981;   /* green  – safe / active */
+  --danger:  #ef4444;   /* red    – critical      */
+  --warn:    #f59e0b;   /* amber  – high          */
+  --info:    #3b82f6;   /* blue   – informational */
+  --purple:  #8b5cf6;   /* purple – stats         */
+
+  /* Text */
+  --text:    #f1f5f9;
+  --muted:   #6b7280;
+  --muted2:  #9ca3af;
+
+  /* Glow overlays */
+  --glow:    rgba(16,185,129,.18);
+  --dglow:   rgba(239,68,68,.18);
+  --wglow:   rgba(245,158,11,.18);
+
+  /* Typography */
+  --font: 'JetBrains Mono', ui-monospace, monospace;
+}

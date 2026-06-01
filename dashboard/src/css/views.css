@@ -1,0 +1,42 @@
+/* ─── VIEW VISIBILITY ────────────────────────────────────────────────────────
+   Views are toggled by the router. Only the active view is displayed.
+─────────────────────────────────────────────────────────────────────────── */
+.view { display: none; }
+.view.active { display: block; }
+
+/* ─── INTELLIGENCE VIEW ──────────────────────────────────────────────────── */
+#view-intelligence .ioc-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   16px;
+}
+
+/* ─── URL SCANNER VIEW ───────────────────────────────────────────────────── */
+#view-scan .scan-grid {
+  display:               grid;
+  grid-template-columns: 1fr 340px;
+  gap:                   16px;
+}
+
+/* ─── INFRASTRUCTURE VIEW ────────────────────────────────────────────────── */
+#view-infrastructure .infra-summary {
+  display:               grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap:                   14px;
+  margin-bottom:         16px;
+}
+
+/* ─── STATS VIEW ─────────────────────────────────────────────────────────── */
+#view-stats .stats-charts {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   16px;
+  margin-bottom:         16px;
+}
+
+/* ─── SETTINGS VIEW ──────────────────────────────────────────────────────── */
+#view-settings .settings-grid {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   16px;
+}

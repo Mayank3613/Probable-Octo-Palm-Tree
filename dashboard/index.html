@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OCTO-PALM Threat Intelligence</title>
+
+  <!-- External Dependencies -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="src/css/variables.css" />
+  <link rel="stylesheet" href="src/css/base.css" />
+  <link rel="stylesheet" href="src/css/layout.css" />
+  <link rel="stylesheet" href="src/css/components.css" />
+  <link rel="stylesheet" href="src/css/views.css" />
+</head>
+<body>
+<div class="shell">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="main-content"></main>
+
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div class="toast hidden" id="toast-msg"></div>
+
+<!-- JavaScript Modules (load order matters) -->
+<script src="src/js/data/mock.js"></script>
+<script src="src/js/data/ioc.js"></script>
+<script src="src/js/data/cve.js"></script>
+<script src="src/js/data/geo.js"></script>
+<script src="src/js/modules/api.js"></script>
+<script src="src/js/modules/state.js"></script>
+<script src="src/js/modules/toast.js"></script>
+<script src="src/js/modules/router.js"></script>
+<script src="src/js/modules/clock.js"></script>
+<script src="src/js/charts/telemetry-charts.js"></script>
+<script src="src/js/charts/stats-charts.js"></script>
+<script src="src/js/views/sidebar.js"></script>
+<script src="src/js/views/telemetry.js"></script>
+<script src="src/js/views/intelligence.js"></script>
+<script src="src/js/views/scanner.js"></script>
+<script src="src/js/views/infrastructure.js"></script>
+<script src="src/js/views/stats.js"></script>
+<script src="src/js/views/settings.js"></script>
+<script type= "module" src="src/js/main.js"></script>
+</body>
+</html>

@@ -1,66 +1,122 @@
-"""Probable-Octo-Palm-Tree Database Layer — async SQLite via aiosqlite"""
 
-import aiosqlite
+"""
+SQLite Database Layer
+Probable-Octo-Palm-Tree
+"""
+
+import sqlite3
 import os
-from contextlib import asynccontextmanager
-from .config import DATABASE_PATH
 
-# Resolve DB path relative to backend-api/ directory
-_DB_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(_DB_DIR, DATABASE_PATH)
+# =========================================================
+# DATABASE LOCATION
+# =========================================================
 
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
 
-async def init_db():
-    """Create tables if they don't exist."""
-    async with aiosqlite.connect(DB_PATH) as db:
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS threat_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                threat_type TEXT,
-                details TEXT,
-                severity TEXT,
-                url TEXT,
-                risk_score INTEGER DEFAULT 0,
-                source TEXT DEFAULT 'extension',
-                created_at TEXT DEFAULT (datetime('now'))
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS connections (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                type TEXT,
-                url TEXT,
-                method TEXT,
-                page_url TEXT,
-                created_at TEXT DEFAULT (datetime('now'))
-            )
-        """)
-        await db.execute("""
-            CREATE TABLE IF NOT EXISTS url_scans (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT,
-                score INTEGER,
-                is_suspicious INTEGER,
-                reason TEXT,
-                scanned_at TEXT DEFAULT (datetime('now'))
-            )
-        """)
-        # Indexes for common queries
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_threat_severity ON threat_logs(severity)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_threat_timestamp ON threat_logs(timestamp)")
-        await db.execute("CREATE INDEX IF NOT EXISTS idx_threat_type ON threat_logs(threat_type)")
-        await db.commit()
-    print(f"[Probable-Octo-Palm-Tree] Database initialized at {DB_PATH}")
+DB_PATH = os.path.join(
+    BASE_DIR,
+    "probable_octo_threats.db"
+)
 
+# =========================================================
+# DATABASE CONNECTION
+# =========================================================
 
-@asynccontextmanager
-async def get_db():
-    """Async context manager for database connections."""
-    db = await aiosqlite.connect(DB_PATH)
-    db.row_factory = aiosqlite.Row
-    try:
-        yield db
-    finally:
-        await db.close()
+def get_db_connection():
+
+    conn = sqlite3.connect(DB_PATH)
+
+    conn.row_factory = sqlite3.Row
+
+    return conn
+
+# =========================================================
+# BACKWARD COMPATIBILITY
+# =========================================================
+
+def get_db():
+    return get_db_connection()
+
+# =========================================================
+# DATABASE INITIALIZATION
+# =========================================================
+
+def init_db():
+
+    conn = get_db_connection()
+
+    cursor = conn.cursor()
+
+    # =====================================================
+    # THREAT LOGS
+    # =====================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS threat_logs (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            timestamp TEXT,
+
+            threat_type TEXT,
+
+            severity TEXT,
+
+            url TEXT,
+
+            details TEXT,
+
+            source TEXT,
+
+            risk_score REAL,
+
+            action TEXT
+        )
+    """)
+
+    # =====================================================
+    # URL SCANS
+    # =====================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS url_scans (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            url TEXT,
+
+            verdict TEXT,
+
+            risk_score REAL,
+
+            scan_time TEXT
+        )
+    """)
+
+    # =====================================================
+    # CONNECTION LOGS
+    # =====================================================
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS connections (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            source_ip TEXT,
+
+            destination_ip TEXT,
+
+            protocol TEXT,
+
+            timestamp TEXT
+        )
+    """)
+
+    conn.commit()
+
+    conn.close()
+
+    print("[DB] SQLite initialized")
+

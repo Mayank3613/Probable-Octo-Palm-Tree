@@ -1,0 +1,37 @@
+/* ─── BASE / RESET ───────────────────────────────────────────────────────────
+   Global resets and elemental styles.
+─────────────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background:   var(--bg);
+  color:        var(--text);
+  font-family:  var(--font);
+  font-size:    13px;
+  min-height:   100vh;
+  overflow-x:   hidden;
+}
+
+/* ─── SCROLLBAR ──────────────────────────────────────────────────────────── */
+.scroll-y {
+  overflow-y: auto;
+  max-height: 360px;
+}
+.scroll-y::-webkit-scrollbar       { width: 3px; }
+.scroll-y::-webkit-scrollbar-track { background: transparent; }
+.scroll-y::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ─── ANIMATIONS ─────────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0    rgba(16,185,129,.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(16,185,129,0);  }
+}
+
+@keyframes alertfade {
+  0%, 100% { border-color: rgba(239,68,68,.25); }
+  50%       { border-color: rgba(239,68,68,.5);  }
+}

@@ -3,7 +3,61 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-01] Dashboard Modification
+- **Frontend Architecture**: 
+- Migrated frontend architecture from Next.js to React + Vite.
+- Removed unnecessary Next.js dependencies and routing structure.
+- Reconfigured project setup for lightweight React-based rendering.
+- 
+- **Partial Live Telemetry Integration**:
+- Partially Connected dashboard with live telemetry pipeline.
+- Added real-time event rendering from browser extension.
+- 
+- **Backend Connectivity**:
+- Linked React frontend with FastAPI backend APIs
+- 
+- **Debugging & Stability Fixes**:
+- Resolved module import issues after migration.
+- Fixed Vite dependency resolution problems.
+---
+## [2026-06-01] Backend-Api Updates and Bud Fixation
+### Fixed (Critical)
+- **Telemetry.py**: Added proper batch telemetry event handling.
+- **telemetry.py**: Enforced MAX_EVENTS_PER_UPLOAD validation.
+- **main.py**: Fixed React + Vite frontend API communication after Next.js removal.
+- **telemetry.py**: Normalized telemetry responses for live dashboard rendering.
+- **database.py**: Stabilized telemetry database initialization and upload flow.
 
+### fixed (medium)
+- **models.py**: Improved telemetry schema validation.
+- **telemetry.py**: Enhanced API response formatting.
+- **config.py**: Centralized telemetry upload configuration handling.
+- **telemetry.py**: Added improved logging/debugging for malformed payloads.
+- **main.py**: Updated backend runtime configuration for React + Vite compatibility.
+
+### Verified:
+- FastAPI backend running successfully with Uvicorn.
+- Telemetry endpoints tested successfully.
+- Live telemetry flow verified.
+- React dashboard successfully receiving telemetry events.
+- Backend runtime stability improved after frontend migration.
+---
+## [2026-06-01] Virtual Environment (venv) Updates:
+- Modified python version from 3.14.x to 3.11.x for fast and smooth execution and running of Fastapi.
+### Fixed
+- Configured Python virtual environment for backend-api setup.
+- Resolved dependency installation issues inside .venv.
+- Fixed missing package/runtime errors during FastAPI startup.
+- Corrected environment activation workflow for local development.
+- Stabilized Uvicorn execution inside virtual environment.
+  
+### Verified
+- .venv activates successfully.
+- Backend starts correctly using:
+- python -m uvicorn app.main:app --reload
+- No missing dependency errors during runtime.
+- Backend API functioning correctly inside virtual environment.
+---
 ## [2026-06-01] Multi-Feed Threat Detection Testing
 
 ### Tested Against

@@ -1,0 +1,164 @@
+/* ─── APP SHELL ──────────────────────────────────────────────────────────── */
+.shell {
+  display:    flex;
+  min-height: 100vh;
+}
+
+/* ─── SIDEBAR ────────────────────────────────────────────────────────────── */
+.sidebar {
+  width:        220px;
+  min-height:   100vh;
+  background:   var(--panel);
+  border-right: 1px solid var(--border);
+  display:      flex;
+  flex-direction: column;
+  position:     fixed;
+  top:          0;
+  left:         0;
+  z-index:      100;
+}
+
+.sb-logo {
+  display:       flex;
+  align-items:   center;
+  gap:           10px;
+  padding:       20px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.sb-logo svg       { color: var(--accent); }
+.sb-logo-text {
+  font-size:      14px;
+  font-weight:    700;
+  letter-spacing: .12em;
+  color:          var(--accent);
+  text-shadow:    0 0 12px var(--glow);
+}
+
+.sb-nav     { flex: 1; padding: 16px 10px; }
+.sb-section {
+  font-size:      10px;
+  color:          var(--muted);
+  letter-spacing: .1em;
+  padding:        12px 8px 6px;
+  text-transform: uppercase;
+}
+
+.sb-item {
+  display:        flex;
+  align-items:    center;
+  gap:            10px;
+  padding:        9px 10px;
+  border-radius:  8px;
+  cursor:         pointer;
+  transition:     all .15s;
+  color:          var(--muted2);
+  margin-bottom:  2px;
+  border:         none;
+  background:     none;
+  width:          100%;
+  text-align:     left;
+  font-family:    var(--font);
+  font-size:      12px;
+}
+.sb-item:hover        { background: rgba(16,185,129,.07); color: var(--text); }
+.sb-item.active       { background: rgba(16,185,129,.12); color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.sb-item svg          { flex-shrink: 0; opacity: .7; }
+.sb-item.active svg   { opacity: 1; }
+
+.sb-badge {
+  margin-left:    auto;
+  background:     var(--danger);
+  color:          #fff;
+  font-size:      10px;
+  padding:        1px 6px;
+  border-radius:  10px;
+  font-weight:    700;
+}
+
+.sb-status {
+  padding:    14px;
+  border-top: 1px solid var(--border);
+}
+.sb-online {
+  display:       flex;
+  align-items:   center;
+  gap:           8px;
+  padding:       10px 12px;
+  background:    rgba(16,185,129,.06);
+  border:        1px solid rgba(16,185,129,.15);
+  border-radius: 8px;
+}
+.pulse {
+  width:         7px;
+  height:        7px;
+  border-radius: 50%;
+  background:    var(--accent);
+  animation:     pulse 2s infinite;
+  flex-shrink:   0;
+}
+.sb-online-text {
+  font-size:      10px;
+  font-weight:    700;
+  letter-spacing: .12em;
+  color:          var(--accent);
+}
+
+/* ─── MAIN CONTENT AREA ──────────────────────────────────────────────────── */
+.main {
+  margin-left: 220px;
+  padding:     24px;
+  flex:        1;
+  min-height:  100vh;
+}
+
+/* ─── PAGE HEADER ────────────────────────────────────────────────────────── */
+.header {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     flex-end;
+  padding-bottom:  20px;
+  border-bottom:   1px solid var(--border);
+  margin-bottom:   22px;
+}
+.header-left h1 { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: .02em; }
+.header-left p  { color: var(--muted2); font-size: 11px; margin-top: 4px; letter-spacing: .04em; }
+.header-right   { display: flex; gap: 10px; align-items: center; }
+
+/* ─── KPI GRID ───────────────────────────────────────────────────────────── */
+.kpi-grid {
+  display:               grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap:                   12px;
+  margin-bottom:         22px;
+}
+
+/* ─── CONTENT GRIDS ──────────────────────────────────────────────────────── */
+.grid-main {
+  display:               grid;
+  grid-template-columns: 1fr 340px;
+  gap:                   16px;
+  margin-bottom:         16px;
+}
+.grid-bottom {
+  display:               grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap:                   16px;
+  margin-bottom:         16px;
+}
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .kpi-grid  { grid-template-columns: repeat(3, 1fr); }
+  .grid-main { grid-template-columns: 1fr; }
+  .grid-bottom { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 800px) {
+  .sidebar { width: 60px; }
+  .sidebar .sb-logo-text,
+  .sidebar .sb-item span,
+  .sidebar .sb-section,
+  .sidebar .sb-online-text { display: none; }
+  .main        { margin-left: 60px; }
+  .grid-bottom { grid-template-columns: 1fr; }
+}
