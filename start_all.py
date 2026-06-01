@@ -118,8 +118,16 @@ def main():
             color_name="AGENT"
         )
         
+        # 4. Start AI Engine
+        run_service(
+            name="AI_ENGINE",
+            command=[sys.executable, "-m", "uvicorn", "app:app", "--port", "8001"],
+            cwd=os.path.join(base_dir, "ai-engine"),
+            color_name="SYSTEM"
+        )
+        
         # Wait for servers to boot
-        if wait_for_port(8000, "Backend API") and wait_for_port(3000, "Next.js Dashboard"):
+        if wait_for_port(8000, "Backend API") and wait_for_port(8001, "AI Engine") and wait_for_port(3000, "Next.js Dashboard"):
             run_health_checks()
         
         # Keep main thread alive
