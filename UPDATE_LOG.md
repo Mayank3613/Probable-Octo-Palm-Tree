@@ -4,6 +4,23 @@ All changes to the project are documented here in reverse chronological order.
 
 ---
 
+## [2026-06-01] Multi-Feed Threat Detection Testing
+
+### Tested Against
+- **URLhaus** (https://urlhaus.abuse.ch): 150 live malware URLs from the CSV recent feed.
+- **RapidDNS** (https://rapiddns.io): 33 DNS-based suspicious domain test URLs (suspicious TLDs, typosquatting, Punycode, DGA, IP-based, URL shorteners).
+- **Shodan TLS** (https://www.shodan.io): 19 TLS/certificate-based suspicious phishing URLs.
+
+### Results
+- **Total URLs Tested:** 202
+- **Overall Detection Rate:** 98.0% (198/202 detected)
+- **URLhaus Malware:** 99.3% (149/150)
+- **RapidDNS Suspicious:** 90.9% (30/33)
+- **Shodan TLS:** 100.0% (19/19)
+- Only 4 URLs missed: 1 raw-IP malware dropper with short path, 1 raw-IP with `.js` extension, and 2 URL shorteners (bit.ly, tinyurl.com).
+
+---
+
 ## [2026-06-01] Post-Pull Integration Review & Critical Bug Fixes
 
 ### Pulled
