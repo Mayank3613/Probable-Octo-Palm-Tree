@@ -10,6 +10,7 @@
   const CRED_PAT   = [/\/login/i,/\/signin/i,/\/auth/i,/\/account/i,/\/credential/i,/\/password/i,/\/wallet/i,/\/session/i];
   const DYNA_CALLS = ["eval","unescape","String.fromCharCode","atob","document.write","Function(","setTimeout(atob","decodeURIComponent"];
   const WATCH_TAGS = {script:["src","type","integrity"],iframe:["src","srcdoc","sandbox"],a:["href","ping"],form:["action","formaction"],input:["type","formaction"],meta:["http-equiv","content"],link:["href","rel"],object:["data"],embed:["src"],base:["href"]};
+  const RISKY_SET = new Set(["script","iframe","form","object","embed"]);
 
   const alert = (type, details, severity) => ({ type, details, severity });
   const tld   = h => h.split(".").pop();
@@ -140,7 +141,7 @@
     iframes() {// hidden iframe detection
       const hidden = [...document.getElementsByTagName("iframe")].filter(f => {
         const s = getComputedStyle(f);
-        return s.display==="none"||s.visibility==="hidden"||+s.opacity===0||f.offsetWidth<=2||f.offsetHeight<=2||+s.left<-500||+s.top<-500;
+        return s.display==="none"||s.visibility==="hidden"||+s.opacity===0||f.offsetWidth<=2||f.offsetHeight<=2||parseFloat(s.left)<-500||parseFloat(s.top)<-500;
       });
       if (!hidden.length) return [];
       return [alert(hidden.length>=3?"Excessive Hidden Iframes":"Hidden Iframe Detected", `${hidden.length} invisible iframe(s): ${hidden.slice(0,3).map(f=>f.src||"about:blank").join(", ")}`, hidden.length>=3?"high":"medium")];
@@ -195,7 +196,7 @@
         for (const n of m.addedNodes) {
           if (n.nodeType !== 1) continue;
           const tag = n.tagName?.toLowerCase();
-          if (RISKY.includes(tag)||(tag==="input"&&n.type==="password")) scan = true;
+          if (RISKY_SET.has(tag)||(tag==="input"&&n.type==="password")) scan = true;
           if (n.querySelector?.(RISKY+",input[type='password']")) scan = true;
           for (const h of [n,...(n.querySelectorAll?.("*")||[])]) if(h.shadowRoot) inspectShadow(h.shadowRoot,h);
         }

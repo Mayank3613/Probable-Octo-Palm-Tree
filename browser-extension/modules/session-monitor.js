@@ -27,7 +27,9 @@
     const parts = cookieStr.split(";").map(p => p.trim().toLowerCase());
     const missing = [];
     if (!parts.includes("secure"))            missing.push("Secure");
-    if (!parts.includes("httponly"))          missing.push("HttpOnly");
+    // Note: HttpOnly is intentionally not checked here — JS-set cookies
+    // cannot include HttpOnly (it's a server-only flag). Checking it would
+    // always produce a false positive.
     if (!parts.some(p => p.startsWith("samesite="))) missing.push("SameSite");
     return missing;
   }

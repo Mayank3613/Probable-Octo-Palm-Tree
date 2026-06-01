@@ -42,15 +42,14 @@
     const { action, payload } = event.detail || {};
 
     if (action === "log_connection") {
-      if (window.OctoApiInterceptor) {
-        window.OctoApiInterceptor.processConnection(payload.type, payload.url, payload.method);
-      } else if (window.OctoLogger) {
-        // Fallback: log directly if interceptor isn't available yet
+      // Route connection logs through the Logger module
+      if (window.OctoLogger) {
         window.OctoLogger.logConnection(payload.type, payload.url, payload.method);
       }
     } else if (action === "cookie_access") {
-      if (window.OctoSessionMonitor) {
-        window.OctoSessionMonitor.processCookieAccess(payload.type, payload.value);
+      // JWT scanning hook — if a cookie access event contains a JWT, scan it
+      if (window.OctoSessionMonitor && payload.value) {
+        window.OctoSessionMonitor.scanJWT(payload.value, "cookie_event");
       }
     }
   });

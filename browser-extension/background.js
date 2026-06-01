@@ -322,6 +322,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     saveThreatLog(message.payload);
   } else if (message.action === "log_connection") {
     saveConnectionLog(message.payload);
+  } else if (message.action === "batch") {
+    // Handle batched messages from the logger module
+    const items = message.items || [];
+    for (const item of items) {
+      if (item.action === "log_threat") {
+        saveThreatLog(item.payload);
+      } else if (item.action === "log_connection") {
+        saveConnectionLog(item.payload);
+      }
+    }
   } else if (message.action === "get_stats") {
     chrome.storage.local.get(["stats"], (result) => {
       sendResponse(result.stats || {});
@@ -434,11 +444,11 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 // ========== MODULE 6: DOWNLOAD MONITORING ==========
 
 chrome.downloads.onCreated.addListener((downloadItem) => {
-  chrome.storage.local.get(["settings"], (result) => {
+  chrome.storage.local.get(["settings"], async (result) => {
     const settings = result.settings || {};
     if (settings.enableDownloadScanning === false) return;
 
-    const analysis = scanDownload(downloadItem);
+    const analysis = await scanDownload(downloadItem);
     if (analysis.isSuspicious) {
       saveThreatLog({
         timestamp: new Date().toISOString(),

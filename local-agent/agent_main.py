@@ -1,7 +1,7 @@
 import psutil
 import time
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Probable-Octo-Palm-Tree Local Security Agent
 # Monitors active system network connections to detect unauthorized access outside the browser
@@ -68,7 +68,7 @@ def monitor_network():
                         # Send telemetry to our backend
                         payload = {
                             "events": [{
-                                "timestamp": datetime.utcnow().isoformat() + "Z",
+                                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                                 "threat_type": threat_type,
                                 "details": f"Process '{proc_name}' (PID {pid}) connected to {remote_ip}:{remote_port}",
                                 "severity": severity,

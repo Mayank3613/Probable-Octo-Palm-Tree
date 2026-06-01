@@ -3,6 +3,30 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+
+## [2026-06-01] Post-Pull Integration Review & Critical Bug Fixes
+
+### Pulled
+- Merged contributor commit `a26cd4f` ("Upgrade security engine with intelligent threat analysis, deep session monitoring, network interception, and optimized logging pipeline") which rewrote 6 browser-extension modules.
+
+### Fixed (Critical)
+- **`background.js:441`**: `scanDownload()` is an `async` function but was called without `await`. The return value was a Promise, so `analysis.isSuspicious` was always `undefined`. **Download scanning was completely broken.** Added `await` and made the callback `async`.
+- **`background.js:320`**: The logger module (`logger.js`) sends batched messages with `action: "batch"`, but the `onMessage` listener had no handler for it. **All content-script-detected threats were silently dropped.** Added a `"batch"` handler that iterates items and routes `log_threat`/`log_connection`.
+- **`content.js:46,53`**: Called `OctoApiInterceptor.processConnection()` and `OctoSessionMonitor.processCookieAccess()` which do not exist on the public APIs. **Both calls threw `TypeError` at runtime.** Replaced with correct methods: `OctoLogger.logConnection()` and `OctoSessionMonitor.scanJWT()`.
+
+### Fixed (Medium)
+- **`threat-detector.js:198`**: `RISKY.includes(tag)` did substring matching on a comma-delimited string. Tags like `"em"` would falsely match `"embed"`. Created a `RISKY_SET = new Set(...)` for exact word matching.
+- **`threat-detector.js:143`**: `+s.left` / `+s.top` on computed CSS strings like `"-500px"` produced `NaN`. Changed to `parseFloat(s.left)`.
+- **`session-monitor.js:29`**: `HttpOnly` check in `checkCookieAttrs` always produced a false positive because `document.cookie` JS strings can never include the `HttpOnly` flag (it is a server-only attribute). Removed the check and added an explanatory comment.
+- **`local-agent/agent_main.py:71`**: Fixed `datetime.utcnow()` deprecation warning — replaced with `datetime.now(timezone.utc)`.
+
+### Verified
+- Backend API: 12/12 pytest tests passed.
+- Dashboard: Next.js production build compiled with zero errors.
+- Attribution Engine: All integration tests passed.
+- Local Agent: Python compilation check passed with zero warnings.
+
+---
 ## [2026-05-31] Updated Web Extention-modules
 ### Updated Url Analyser:
 - Added Features:
