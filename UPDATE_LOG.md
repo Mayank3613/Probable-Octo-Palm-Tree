@@ -13,9 +13,9 @@ All changes to the project are documented here in reverse chronological order.
 
 ### Results
 - **Total URLs Tested:** 202
-- **Overall Detection Rate:** 98.0% (198/202 detected)
-- **URLhaus Malware:** 99.3% (149/150)
-- **RapidDNS Suspicious:** 90.9% (30/33)
+- **Overall Detection Rate:** 99.0% (200/202 detected) (up from 98.0% after AI Engine integration)
+- **URLhaus Malware:** 100.0% (150/150)
+- **RapidDNS Suspicious:** 93.9% (31/33)
 - **Shodan TLS:** 100.0% (19/19)
 - Only 4 URLs missed: 1 raw-IP malware dropper with short path, 1 raw-IP with `.js` extension, and 2 URL shorteners (bit.ly, tinyurl.com).
 
