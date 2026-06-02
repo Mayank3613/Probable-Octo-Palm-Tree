@@ -13,6 +13,9 @@ def build():
         '--noconfirm',
         '--windowed', # No console window
         '--clean',
+        f'--add-data=backend-api{separator}backend-api',
+        f'--add-data=ai-engine{separator}ai-engine',
+        f'--add-data=local-agent{separator}local-agent',
         f'--add-data=dashboard/dist{separator}dashboard/dist',
         f'--add-data=ai-engine/model.joblib{separator}ai-engine',
         '--hidden-import=uvicorn',
@@ -28,10 +31,6 @@ def build():
         '--hidden-import=aiosqlite',
     ]
     
-    # Optional GeoIP db
-    if os.path.exists("local-agent/GeoLite2-City.mmdb"):
-        args.append(f'--add-data=local-agent/GeoLite2-City.mmdb{separator}local-agent')
-        
     PyInstaller.__main__.run(args)
     
     print("\n" + "="*50)

@@ -5,7 +5,7 @@ a = Analysis(
     ['app_tray.py'],
     pathex=[],
     binaries=[],
-    datas=[('dashboard/dist', 'dashboard/dist'), ('ai-engine/model.joblib', 'ai-engine'), ('local-agent/GeoLite2-City.mmdb', 'local-agent')],
+    datas=[('backend-api', 'backend-api'), ('ai-engine', 'ai-engine'), ('local-agent', 'local-agent'), ('dashboard/dist', 'dashboard/dist'), ('ai-engine/model.joblib', 'ai-engine')],
     hiddenimports=['uvicorn', 'fastapi', 'sklearn.ensemble._forest', 'scapy', 'psutil', 'geoip2', 'ipwhois', 'watchdog', 'pystray', 'PIL', 'aiosqlite'],
     hookspath=[],
     hooksconfig={},

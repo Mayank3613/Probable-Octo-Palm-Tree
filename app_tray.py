@@ -7,6 +7,16 @@ from PIL import Image, ImageDraw
 import pystray
 from pystray import MenuItem as item
 
+# Fix for multiprocessing in --windowed mode where sys.stdout is None
+class DummyWriter:
+    def write(self, *args, **kwargs): pass
+    def flush(self, *args, **kwargs): pass
+
+if sys.stdout is None:
+    sys.stdout = DummyWriter()
+if sys.stderr is None:
+    sys.stderr = DummyWriter()
+
 def get_base_path():
     if getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS'):
         return sys._MEIPASS

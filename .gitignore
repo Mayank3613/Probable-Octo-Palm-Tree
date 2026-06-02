@@ -49,3 +49,6 @@ desktop.ini
 coverage/
 .coverage
 htmlcov/
+*.exe
+build/
+dist/
