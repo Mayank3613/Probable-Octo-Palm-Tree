@@ -134,56 +134,9 @@ app.include_router(scanner.router)
 app.include_router(alerts.router)
 app.include_router(attribution.router)
 
-# =========================================================
-# ROOT ENDPOINT
-# =========================================================
+from fastapi.staticfiles import StaticFiles
 
-@app.get("/", tags=["System"])
-async def root():
-
-    return {
-        "application": APP_NAME,
-        "version": VERSION,
-        "status": "online",
-        "mode": "live-production",
-
-        "documentation": {
-            "swagger": "/docs",
-            "redoc": "/redoc"
-        },
-
-        "dashboard": {
-            "url": "/dashboard",
-            "live_mode": True
-        },
-
-        "telemetry": {
-            "upload": "POST /telemetry/upload",
-            "live_feed": "GET /telemetry/live",
-            "stats": "GET /telemetry/stats",
-            "critical": "GET /telemetry/critical",
-            "metrics": "GET /telemetry/metrics",
-            "recent": "GET /telemetry/recent"
-        },
-
-        "alerts": {
-            "live": "GET /alerts/live",
-            "history": "GET /alerts/history",
-            "stats": "GET /alerts/stats"
-        },
-
-        "scanner": {
-            "url_scan": "POST /scan/url"
-        },
-
-        "attribution": {
-            "domain_lookup": "POST /attribution/domain"
-        },
-
-        "health": {
-            "endpoint": "/health"
-        }
-    }
+DASHBOARD_DIST = os.path.abspath(os.path.join(BASE_DIR, "..", "..", "dashboard", "dist"))
 
 # =========================================================
 # HEALTH CHECK
@@ -191,39 +144,26 @@ async def root():
 
 @app.get("/health", tags=["System"])
 async def health_check():
-
     uptime_seconds = int(time.time() - BOOT_TIME)
-
     return {
         "status": "healthy",
         "application": APP_NAME,
         "version": VERSION,
         "uptime_seconds": uptime_seconds,
         "telemetry": "active",
-        "database": "connected",
-        "dashboard_api": "online"
+        "database": "connected"
     }
 
 # =========================================================
-# LIVE DASHBOARD
+# ROOT ENDPOINT / DASHBOARD STATIC FILES
 # =========================================================
 
-@app.get(
-    "/dashboard",
-    response_class=HTMLResponse,
-    tags=["Dashboard"]
-)
-async def render_dashboard(request: Request):
-
-    return templates.TemplateResponse(
-        request=request,
-        name="dashboard.html",
-        context={
-            "version": VERSION,
-            "app_name": APP_NAME,
-            "live_mode": True
-        }
-    )
+if os.path.exists(DASHBOARD_DIST):
+    app.mount("/", StaticFiles(directory=DASHBOARD_DIST, html=True), name="dashboard")
+else:
+    @app.get("/")
+    async def root():
+        return {"error": "Dashboard build not found. Run 'npm run build' in the dashboard directory."}
 
 # =========================================================
 # API STATUS

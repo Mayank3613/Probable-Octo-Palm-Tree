@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "postcss": "^8.5.15",
-    "vite": "^7.0.0"
+    "vite": "^7.0.0",
+    "vite-plugin-static-copy": "^4.1.0"
   }
 }
