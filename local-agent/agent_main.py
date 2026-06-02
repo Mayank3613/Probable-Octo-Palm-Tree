@@ -4,23 +4,20 @@ import time
 import hashlib
 import socket
 import threading
+import atexit
 from collections import defaultdict
 from datetime import datetime, timezone
 
 import psutil
 import requests
-from scapy.all import sniff, IP
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from ipwhois import IPWhois
-import geoip2.database
 from dotenv import load_dotenv
 
 # ============================================================
 # LOAD ENV VARIABLES
 # ============================================================
-
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -40,9 +37,10 @@ GEOIP_DB = os.getenv(
     "GeoLite2-City.mmdb"
 )
 
-SCAN_INTERVAL = int(
-    os.getenv("SCAN_INTERVAL", 3)
-)
+try:
+    SCAN_INTERVAL = int(os.getenv("SCAN_INTERVAL", 3))
+except ValueError:
+    SCAN_INTERVAL = 3
 
 # ============================================================
 # PROCESS MAPPINGS
@@ -113,7 +111,29 @@ connection_counter = defaultdict(int)
 
 vt_cache = {}
 
-geo_reader = geoip2.database.Reader(GEOIP_DB)
+MAX_SEEN_CONNECTIONS = 10000
+MAX_VT_CACHE = 500
+
+# GeoIP reader (graceful if mmdb is missing)
+geo_reader = None
+try:
+    import geoip2.database
+    if os.path.exists(GEOIP_DB):
+        geo_reader = geoip2.database.Reader(GEOIP_DB)
+        atexit.register(geo_reader.close)
+        print(f"[+] GeoIP database loaded: {GEOIP_DB}")
+    else:
+        print(f"[!] GeoIP database not found: {GEOIP_DB} (geo lookups disabled)")
+except ImportError:
+    print("[!] geoip2 not installed (geo lookups disabled)")
+
+# Scapy (optional, requires admin + Npcap)
+scapy_available = False
+try:
+    from scapy.all import sniff, IP
+    scapy_available = True
+except ImportError:
+    print("[!] Scapy not installed (packet capture disabled)")
 
 # ============================================================
 # HELPERS
@@ -142,7 +162,7 @@ def sha256_file(path):
 
         return sha256.hexdigest()
 
-    except:
+    except Exception:
 
         return "unknown"
 
@@ -154,7 +174,7 @@ def resolve_dns(ip):
 
         return socket.gethostbyaddr(ip)[0]
 
-    except:
+    except Exception:
 
         return "Unknown Domain"
 
@@ -172,7 +192,7 @@ def get_ip_owner(ip):
 
         return network.get("name", "Unknown Organization")
 
-    except:
+    except Exception:
 
         return "Unknown Organization"
 
@@ -180,16 +200,19 @@ def get_ip_owner(ip):
 
 def get_geoip(ip):
 
+    if geo_reader is None:
+        return {"country": "Unknown", "city": "Unknown"}
+
     try:
 
         response = geo_reader.city(ip)
 
         return {
-            "country": response.country.name,
-            "city": response.city.name
+            "country": response.country.name or "Unknown",
+            "city": response.city.name or "Unknown"
         }
 
-    except:
+    except Exception:
 
         return {
             "country": "Unknown",
@@ -234,7 +257,7 @@ def virustotal_lookup(ip):
 
             return malicious
 
-    except:
+    except Exception:
 
         pass
 
@@ -276,9 +299,9 @@ def send_telemetry(event):
             timeout=3
         )
 
-    except:
+    except Exception as e:
 
-        pass
+        print(f"[WARN] Telemetry send failed: {e}")
 
 # ============================================================
 # NETWORK MONITOR
@@ -297,6 +320,18 @@ def monitor_network():
             connections = psutil.net_connections(kind="inet")
 
             for conn in connections:
+
+                if conn.status != "ESTABLISHED":
+                    continue
+
+                # Skip whitelisted processes early
+                if conn.pid:
+                    try:
+                        p = psutil.Process(conn.pid)
+                        if p.name().lower() in WHITELIST_PROCESSES:
+                            continue
+                    except Exception:
+                        pass
 
                 if conn.status != "ESTABLISHED":
                     continue
@@ -325,7 +360,7 @@ def monitor_network():
 
                     exe_path = proc.exe()
 
-                except:
+                except (psutil.NoSuchProcess, psutil.AccessDenied, Exception):
                     continue
 
                 conn_id = f"{pid}-{remote_ip}:{remote_port}"
@@ -334,6 +369,12 @@ def monitor_network():
                     continue
 
                 seen_connections.add(conn_id)
+
+                # Prune caches to prevent unbounded memory growth
+                if len(seen_connections) > MAX_SEEN_CONNECTIONS:
+                    seen_connections.clear()
+                if len(vt_cache) > MAX_VT_CACHE:
+                    vt_cache.clear()
 
                 # ====================================================
                 # DNS
@@ -503,12 +544,21 @@ def packet_callback(packet):
 
 def start_packet_capture():
 
-    print("[+] Packet capture enabled")
+    if not scapy_available:
+        print("[!] Packet capture skipped (Scapy/Npcap not available)")
+        return
 
-    sniff(
-        prn=packet_callback,
-        store=False
-    )
+    try:
+        print("[+] Packet capture enabled")
+
+        sniff(
+            prn=packet_callback,
+            store=False
+        )
+    except PermissionError:
+        print("[!] Packet capture requires administrator privileges")
+    except Exception as e:
+        print(f"[!] Packet capture failed: {e}")
 
 # ============================================================
 # RANSOMWARE DETECTION
@@ -570,6 +620,9 @@ def start_ransomware_monitor():
 
     path = "C:\\Users"
 
+    if not os.path.exists(path):
+        path = os.path.expanduser("~")
+
     observer = Observer()
 
     observer.schedule(
@@ -580,7 +633,15 @@ def start_ransomware_monitor():
 
     observer.start()
 
-    print("[+] Ransomware monitor enabled")
+    print(f"[+] Ransomware monitor enabled (watching {path})")
+
+    # Keep thread alive so observer doesn't get garbage collected
+    try:
+        while True:
+            time.sleep(1)
+    except Exception:
+        observer.stop()
+    observer.join()
 
 # ============================================================
 # MAIN

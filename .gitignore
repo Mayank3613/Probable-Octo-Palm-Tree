@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+venv/
+.env
+.env.local
+.env.production
+
+# GeoIP databases (too large for git, download separately)
+*.mmdb
+
+# Node.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ML Model artifacts (keep .joblib tracked for deployment)
+# ai-engine/model.joblib
+# ai-engine/feature_names.joblib
+
+# Logs
+*.log
+
+# Testing
+.pytest_cache/
+coverage/
+.coverage
+htmlcov/

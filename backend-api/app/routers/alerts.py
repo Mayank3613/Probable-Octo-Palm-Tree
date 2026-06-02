@@ -122,5 +122,5 @@ def _row_to_threat(row) -> ThreatLogResponse:
         url=row[5] or "",
         risk_score=row[6] or 0,
         source=row[7] or "extension",
-        created_at=row[8] or "",
+        created_at=row[9] or "",
     )

@@ -1,9 +1,11 @@
 
 """
-SQLite Database Layer
+SQLite Database Layer (Async)
 Probable-Octo-Palm-Tree
+Uses aiosqlite for async context manager support.
 """
 
+import aiosqlite
 import sqlite3
 import os
 
@@ -21,23 +23,23 @@ DB_PATH = os.path.join(
 )
 
 # =========================================================
-# DATABASE CONNECTION
-# =========================================================
-
-def get_db_connection():
-
-    conn = sqlite3.connect(DB_PATH)
-
-    conn.row_factory = sqlite3.Row
-
-    return conn
-
-# =========================================================
-# BACKWARD COMPATIBILITY
+# ASYNC DATABASE CONNECTION
 # =========================================================
 
 def get_db():
-    return get_db_connection()
+    """Returns an aiosqlite connection context manager.
+    Usage: async with get_db() as db:
+    """
+    return aiosqlite.connect(DB_PATH)
+
+# =========================================================
+# SYNCHRONOUS CONNECTION (for init only)
+# =========================================================
+
+def get_db_connection():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 # =========================================================
 # DATABASE INITIALIZATION
@@ -45,8 +47,7 @@ def get_db():
 
 def init_db():
 
-    conn = get_db_connection()
-
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     # =====================================================
@@ -55,24 +56,16 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS threat_logs (
-
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             timestamp TEXT,
-
             threat_type TEXT,
-
-            severity TEXT,
-
-            url TEXT,
-
             details TEXT,
-
-            source TEXT,
-
-            risk_score REAL,
-
-            action TEXT
+            severity TEXT,
+            url TEXT,
+            risk_score INTEGER DEFAULT 0,
+            source TEXT DEFAULT 'extension',
+            action TEXT DEFAULT 'detected',
+            created_at TEXT DEFAULT (datetime('now'))
         )
     """)
 
@@ -82,16 +75,12 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS url_scans (
-
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
             url TEXT,
-
-            verdict TEXT,
-
-            risk_score REAL,
-
-            scan_time TEXT
+            score INTEGER,
+            is_suspicious INTEGER,
+            reason TEXT,
+            scanned_at TEXT DEFAULT (datetime('now'))
         )
     """)
 
@@ -101,22 +90,17 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS connections (
-
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            source_ip TEXT,
-
-            destination_ip TEXT,
-
-            protocol TEXT,
-
-            timestamp TEXT
+            timestamp TEXT,
+            type TEXT,
+            url TEXT,
+            method TEXT,
+            page_url TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
         )
     """)
 
     conn.commit()
-
     conn.close()
 
     print("[DB] SQLite initialized")
-

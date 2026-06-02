@@ -29,8 +29,7 @@ def test_telemetry_upload(client):
     response = client.post("/telemetry/upload", json=payload)
     assert response.status_code == 200
     assert response.json()["success"] == True
-    assert "data" in response.json()
-    assert response.json()["data"]["stored"] == 1
+    assert response.json()["inserted"] == 1
 
 def test_scan_safe_url(client):
     payload = {"url": "https://google.com"}

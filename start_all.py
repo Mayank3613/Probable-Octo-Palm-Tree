@@ -8,10 +8,11 @@ import urllib.request
 
 # Color definitions
 COLORS = {
-    "BACKEND": "\033[94m",    # Blue
-    "DASHBOARD": "\033[92m",  # Green
-    "AGENT": "\033[93m",      # Yellow
-    "SYSTEM": "\033[95m",     # Magenta
+    "BACKEND": "\033[94m",      # Blue
+    "DASHBOARD": "\033[92m",    # Green
+    "AGENT": "\033[93m",        # Yellow
+    "AI_ENGINE": "\033[96m",    # Cyan
+    "SYSTEM": "\033[95m",       # Magenta
     "RESET": "\033[0m"
 }
 
@@ -81,6 +82,11 @@ def run_health_checks():
         if req.getcode() == 200:
             print_colored("SYSTEM", "SYSTEM", "[PASS] Backend API Health Check: OK\n")
         
+        # Check AI Engine
+        req = urllib.request.urlopen("http://127.0.0.1:8001/health")
+        if req.getcode() == 200:
+            print_colored("SYSTEM", "SYSTEM", "[PASS] AI Engine Health Check: OK\n")
+        
         # Check Dashboard
         req = urllib.request.urlopen("http://127.0.0.1:3000")
         if req.getcode() == 200:
@@ -102,7 +108,7 @@ def main():
             color_name="BACKEND"
         )
         
-        # 2. Start Next.js Dashboard
+        # 2. Start Vite Dashboard
         run_service(
             name="DASHBOARD",
             command=["npm", "run", "dev"],
@@ -123,11 +129,11 @@ def main():
             name="AI_ENGINE",
             command=[sys.executable, "-m", "uvicorn", "app:app", "--port", "8001"],
             cwd=os.path.join(base_dir, "ai-engine"),
-            color_name="SYSTEM"
+            color_name="AI_ENGINE"
         )
         
         # Wait for servers to boot
-        if wait_for_port(8000, "Backend API") and wait_for_port(8001, "AI Engine") and wait_for_port(3000, "Next.js Dashboard"):
+        if wait_for_port(8000, "Backend API") and wait_for_port(8001, "AI Engine") and wait_for_port(3000, "Dashboard"):
             run_health_checks()
         
         # Keep main thread alive

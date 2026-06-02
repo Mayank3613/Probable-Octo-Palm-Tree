@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import joblib
@@ -5,8 +6,6 @@ import pandas as pd
 import os
 import logging
 from features import extract_features
-
-app = FastAPI(title="OctoPlamTree AI Engine", version="1.0.0")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -25,8 +24,8 @@ class PredictionResponse(BaseModel):
     is_malicious: bool
     confidence: float
 
-@app.on_event("startup")
-async def load_model():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     global MODEL, FEATURE_NAMES
     base_dir = os.path.dirname(os.path.abspath(__file__))
     model_path = os.path.join(base_dir, "model.joblib")
@@ -39,6 +38,9 @@ async def load_model():
         logger.info("ML model loaded successfully.")
     else:
         logger.warning(f"Model not found at {model_path}. Please run train.py first.")
+    yield
+
+app = FastAPI(title="OctoPlamTree AI Engine", version="1.0.0", lifespan=lifespan)
 
 @app.get("/health")
 async def health_check():

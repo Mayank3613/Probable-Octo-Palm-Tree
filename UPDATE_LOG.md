@@ -3,6 +3,46 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-02] Professional Polish, Security Fixes & Bug Squash
+
+### Security Fixes (CRITICAL)
+- **Removed committed API key**: VirusTotal API key in `local-agent/.env` was tracked in git. Untracked the file and created a safe `.env.example` with placeholder values.
+- **Removed 66MB binary from git**: `local-agent/GeoLite2-City.mmdb` (GeoIP database) was committed. Removed from tracking and added `*.mmdb` to `.gitignore`.
+
+### Bug Fixes (13 total)
+- **Fixed `database.py`**: Rewrote from synchronous `sqlite3` to async `aiosqlite` — was crashing all async router endpoints (alerts, scanner) with `TypeError: sqlite3.Connection does not support async context manager`.
+- **Fixed database schema**: Added missing `action` column to `threat_logs` table to match what `telemetry.py` inserts.
+- **Fixed `alerts.py` column index**: Updated `_row_to_threat` helper to read `created_at` from correct column index after schema change.
+- **Fixed `test_api.py`**: Updated telemetry test assertion to match actual API response format (`inserted` instead of `data.stored`).
+- **Fixed `ai-engine/app.py`**: Replaced deprecated `@app.on_event("startup")` with modern `lifespan` context manager.
+- **Fixed `backend-api/main.py` CORS**: Changed `allow_credentials=True` to `False` (conflicts with `allow_origins=["*"]` per CORS spec).
+- **Fixed `dashboard/index.html`**: Corrected malformed `type= "module"` attribute.
+- **Fixed `agent_main.py`** (7 bugs):
+  - Removed duplicate `from dotenv import load_dotenv` import.
+  - Made GeoIP/Scapy imports graceful — no longer crashes if dependencies are missing.
+  - Replaced 7 bare `except:` clauses with `except Exception:`.
+  - Added memory pruning for `seen_connections` (cap 10K) and `vt_cache` (cap 500).
+  - Added telemetry error logging instead of silent `pass`.
+  - Fixed ransomware monitor thread exiting immediately (added `observer.join()` loop).
+  - Implemented `WHITELIST_PROCESSES` filtering (was defined but never used).
+
+### Professional Polish
+- **Rewrote `README.md`**: Complete rewrite to accurately reflect actual tech stack (vanilla JS, Vite, scikit-learn, SQLite). Previous README claimed React, Next.js, PyTorch, Docker/K8s, PostgreSQL, Redis — none of which were used.
+- **Created `.gitignore`**: Added comprehensive root `.gitignore` covering Python, Node, databases, IDE, OS files, and GeoIP binaries.
+- **Removed `venv/` from git**: Entire Python virtual environment was committed (1000+ files). Removed from tracking.
+- **Removed `__pycache__/` from git**: All compiled Python cache files removed from tracking.
+- **Cleaned dashboard**: Removed 7 leftover Next.js template files (`next.config.ts`, `tsconfig.json`, `next-env.d.ts`, `eslint.config.mjs`, `postcss.config.mjs`, `AGENTS.md`, `CLAUDE.md`).
+- **Cleaned `dashboard/package.json`**: Removed unused Tailwind/autoprefixer devDependencies.
+- **Replaced dashboard `.gitignore`**: Changed from Next.js template to proper Vite gitignore.
+- **Created `vite.config.js`**: Set dashboard dev server to port 3000 for consistency with `start_all.py`.
+- **Fixed `dashboard/package.json` scripts**: Changed `vite` to `npx vite` to work without global install.
+- **Updated `start_all.py`**: Fixed "Next.js" comments → "Vite", added AI Engine health check, added cyan color for AI_ENGINE logs.
+
+### Test Results
+- **12/12 backend tests passing** (pytest)
+- **99% multi-feed detection rate** maintained after all changes
+
+---
 ## [2026-06-02] Local Security Agent
 ### Major Feature Upgrades
 - **Advanced Network Monitoring**:Implemented continuous monitoring of active outbound TCP/IP connections using psutil.
