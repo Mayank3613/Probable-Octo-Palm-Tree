@@ -3,6 +3,60 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-02] Local Security Agent
+### Major Feature Upgrades
+- **Advanced Network Monitoring**:Implemented continuous monitoring of active outbound TCP/IP connections using psutil.
+- **Friendly Application Resolution**:Replaced raw executable names with human-readable application names.
+- **DNS Resolution**: Implemented reverse DNS lookup support.
+- **Organization/IP Owner Resolution**:Implemented RDAP/IPWhois ownership lookup.
+- **GeoIP Tracking**: Implemented geolocation tracking for remote IPs.
+- **Threat Intelligence Integration**:Integrated VirusTotal IP reputation analysis.
+- **VirusTotal Caching**: Implemented local cache for VirusTotal lookups.
+- **Process Hashing**: Implemented SHA256 hashing of process executables.
+- **Packet Capture Support**: Implemented packet sniffing using Scapy.
+- **Ransomware Detection**: Implemented filesystem monitoring using Watchdog.
+- **Advanced Risk Scoring**: Implemented dynamic threat scoring engine.
+
+### Optimized
+- Connection handling
+- API requests
+- Event generation
+### Dependencies Added
+- scapy
+- watchdog
+- geoip2
+- python-dotenv
+- ipwhois
+---
+## [2026-06-02] Environment Variables and console Output Improvements
+- Implemented .env configuration support.
+- **Example**:
+- `VT_API_KEY=YOUR_API_KEY`
+- `BACKEND_API=http://localhost:8000/telemetry/upload`
+- `SCAN_INTERVAL=3`
+- `GEOIP_DB=GeoLite2-City.mmdb`
+
+### **Console Output:**
+- **Before**
+- [MEDIUM] code.exe connected to 13.67.9.5
+- **After**
+- [LOW] Normal Network Activity
+
+- Application : Visual Studio Code
+- Organization: MICROSOFT-CORP
+- Domain      : microsoft.com
+- Location    : Seattle, United States
+- Remote IP   : 13.67.9.5
+---
+## [2026-06-02] Debug Fixes & Stability Improvements
+- **Duplicate Connection Spam**: Implemented connection tracking cache.
+- **Excessive False Positives**: Added whitelist support and behavioral filtering.
+- **API Rate Limit Problems**: Added VirusTotal caching.
+- **Poor Telemetry Readability**: Implemented friendly process names and DNS resolution.
+- **Missing Threat Context**: Added GeoIP and organization intelligence.
+- **Blocking API Calls**: Optimized telemetry transmission logic.
+- **Weak Detection Accuracy**: Implemented dynamic threat scoring.
+--- 
 ## [2026-06-01] Dashboard Modification
 - **Frontend Architecture**: 
 - Migrated frontend architecture from Next.js to React + Vite.
