@@ -3,6 +3,15 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-02] Standalone Application, PyInstaller & NSIS
+
+### Unified Application & Cross-Platform Packaging
+- **Static Dashboard Build**: Built the Vite React dashboard into `dashboard/dist` and configured the FastAPI backend to statically serve the dashboard at `http://localhost:8000/`. The Node.js server dependency has been completely removed.
+- **System Tray Orchestrator (`app_tray.py`)**: Created a unified orchestrator using `multiprocessing` that runs the Backend, AI Engine, and Local Agent seamlessly in the background. It integrates a system tray icon (`pystray`) for opening the dashboard and safely shutting down services.
+- **PyInstaller Bundler (`build_app.py`)**: Wrote a cross-platform compilation script that packages the entire Python environment, AI models, and compiled frontend into a standalone application folder (`dist/OctoPlamTree/`).
+- **Windows Installer (`installer.nsi`)**: Provided a professional setup script for NSIS to package the PyInstaller output into `OctoPlamTree_Setup_Windows.exe` with Desktop/Start Menu shortcuts and an uninstaller.
+
+---
 ## [2026-06-02] Professional Polish, Security Fixes & Bug Squash
 
 ### Security Fixes (CRITICAL)
