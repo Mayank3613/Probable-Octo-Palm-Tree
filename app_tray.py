@@ -67,14 +67,19 @@ def run_agent():
 processes = []
 
 def create_image():
-    # Simple Octo-Palm Tree icon
-    image = Image.new('RGB', (64, 64), color=(10, 15, 25))
-    dc = ImageDraw.Draw(image)
-    # Tree trunk
-    dc.rectangle((28, 32, 36, 60), fill=(139, 69, 19))
-    # Leaves
-    dc.ellipse((16, 16, 48, 48), fill=(46, 204, 113))
-    return image
+    # Load the doodle logo from file
+    base_path = get_base_path()
+    logo_path = os.path.join(base_path, 'logo.png')
+    
+    if os.path.exists(logo_path):
+        return Image.open(logo_path)
+    else:
+        # Fallback if logo is missing
+        image = Image.new('RGB', (64, 64), color=(10, 15, 25))
+        dc = ImageDraw.Draw(image)
+        dc.rectangle((28, 32, 36, 60), fill=(139, 69, 19))
+        dc.ellipse((16, 16, 48, 48), fill=(46, 204, 113))
+        return image
 
 def open_dashboard(icon, item):
     webbrowser.open("http://127.0.0.1:8000")

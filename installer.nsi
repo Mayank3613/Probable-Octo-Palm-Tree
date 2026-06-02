@@ -11,10 +11,18 @@ OutFile "OctoPlamTree_Setup_Windows.exe"
 InstallDir "${INSTALLDIR}"
 RequestExecutionLevel admin
 
+; Add installer icons
+Icon "logo.ico"
+UninstallIcon "logo.ico"
+
 Page directory
 Page instfiles
 
 Section "Install"
+  ; Check for previous installation and silently uninstall if found
+  IfFileExists "$INSTDIR\uninstall.exe" 0 +2
+    ExecWait '"$INSTDIR\uninstall.exe" /S _?=$INSTDIR'
+  
   SetOutPath "$INSTDIR"
   
   ; Copy all files from the PyInstaller dist folder

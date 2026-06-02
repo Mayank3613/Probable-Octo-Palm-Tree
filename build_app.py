@@ -12,7 +12,9 @@ def build():
         '--name=OctoPlamTree',
         '--noconfirm',
         '--windowed', # No console window
+        '--icon=logo.ico',
         '--clean',
+        f'--add-data=logo.png{separator}.',
         f'--add-data=backend-api{separator}backend-api',
         f'--add-data=ai-engine{separator}ai-engine',
         f'--add-data=local-agent{separator}local-agent',

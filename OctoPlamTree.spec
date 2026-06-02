@@ -5,7 +5,7 @@ a = Analysis(
     ['app_tray.py'],
     pathex=[],
     binaries=[],
-    datas=[('backend-api', 'backend-api'), ('ai-engine', 'ai-engine'), ('local-agent', 'local-agent'), ('dashboard/dist', 'dashboard/dist'), ('ai-engine/model.joblib', 'ai-engine')],
+    datas=[('logo.png', '.'), ('backend-api', 'backend-api'), ('ai-engine', 'ai-engine'), ('local-agent', 'local-agent'), ('dashboard/dist', 'dashboard/dist'), ('ai-engine/model.joblib', 'ai-engine')],
     hiddenimports=['uvicorn', 'fastapi', 'sklearn.ensemble._forest', 'scapy', 'psutil', 'geoip2', 'ipwhois', 'watchdog', 'pystray', 'PIL', 'aiosqlite'],
     hookspath=[],
     hooksconfig={},
@@ -32,6 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['logo.ico'],
 )
 coll = COLLECT(
     exe,
