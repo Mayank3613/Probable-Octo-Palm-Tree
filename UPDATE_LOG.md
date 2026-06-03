@@ -3,6 +3,20 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-03] Browser Extension Architecture Fix & Visual Branding
+
+### Fixed (Critical)
+- **Extension Crash on XML/Slow Sites:** `threat-detector.js` was crashing due to `MutationObserver` targeting `document.documentElement` before the DOM was ready. Updated to observe `document` directly, preventing `TypeError` crashes.
+- **Isolated World Hooking Inconsistency:** Previously, JS prototype hooks (`fetch`, `XHR`, `localStorage`, `attachShadow`) inside `api-interceptor.js`, `session-monitor.js`, and `threat-detector.js` were executing in Chrome's Isolated World. They were completely blind to the webpage's actual network activity. 
+- **Fix:** Merged all threat scoring, JWT scanning, payload inspection, and blocking logic directly into the Main World `inject.js` hook. The extension now actively intercepts and analyzes the website's real requests. Redundant isolated modules (`api-interceptor.js` and `session-monitor.js`) have been deleted to clean up the architecture.
+
+### Added (Polish)
+- **Unified Visual Branding:** Applied a new generated "Simple Doodle" logo across the entire project. The logo is now used in:
+  - The browser extension (`icon16.png`, `icon48.png`, `icon128.png`)
+  - The React/Vite dashboard (`logo.png`)
+  - The standalone PyInstaller executable and the NSIS installer (`logo.ico`)
+
+---
 ## [2026-06-02] Standalone Application, PyInstaller & NSIS
 
 ### Unified Application & Cross-Platform Packaging
