@@ -29,7 +29,15 @@
       script.onload = function() {
         this.remove();
       };
-      (document.head || document.documentElement).appendChild(script);
+      const parent = document.head || document.documentElement || document;
+      if (parent.appendChild) {
+        parent.appendChild(script);
+      } else {
+        // Fallback for extremely early execution or XML documents
+        document.addEventListener("DOMContentLoaded", () => {
+          (document.head || document.documentElement).appendChild(script);
+        });
+      }
     } catch (e) {
       console.debug("[Probable-Octo-Palm-Tree] Failed to inject main world hook:", e);
     }
@@ -41,16 +49,12 @@
   window.addEventListener("OctoSecurityEvent", function(event) {
     const { action, payload } = event.detail || {};
 
-    if (action === "log_connection") {
-      // Route connection logs through the Logger module
-      if (window.OctoLogger) {
-        window.OctoLogger.logConnection(payload.type, payload.url, payload.method);
-      }
-    } else if (action === "cookie_access") {
-      // JWT scanning hook — if a cookie access event contains a JWT, scan it
-      if (window.OctoSessionMonitor && payload.value) {
-        window.OctoSessionMonitor.scanJWT(payload.value, "cookie_event");
-      }
+    if (action === "log_connection" && window.OctoLogger) {
+      window.OctoLogger.logConnection(payload.type, payload.url, payload.method);
+    } else if (action === "cookie_access" && window.OctoSessionMonitor && payload.value) {
+      window.OctoSessionMonitor.scanJWT(payload.value, "cookie_event");
+    } else if (action === "log_threat" && window.OctoLogger) {
+      window.OctoLogger.log(payload.type, payload.details, payload.severity);
     }
   });
 

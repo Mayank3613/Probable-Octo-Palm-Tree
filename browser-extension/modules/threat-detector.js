@@ -24,41 +24,7 @@
     if (window.OctoLogger) try { OctoLogger.log(a.type, a.details, a.severity); } catch {}
   }
 
-  // ── Network monitoring ──────────────────────────────────────────────────────
-  function analyzeReq(url, method, body) {
-    const out = [];
-    if (NET_PAT.some(r => r.test(url)))
-      out.push(alert("Suspicious Network Request", `${method} → ${url}`, "high"));
-    try {
-      const u = new URL(url, location.href);
-      if (u.hostname !== location.hostname && /^(POST|PUT|PATCH)$/i.test(method)) {
-        out.push(alert(
-          CRED_PAT.some(r => r.test(u.pathname)) ? "Credential Exfiltration Request" : "Cross-Origin Data Submission",
-          `${method} → ${u.hostname}${u.pathname}`,
-          CRED_PAT.some(r => r.test(u.pathname)) ? "critical" : "medium"
-        ));
-      }
-      if (body && body.length > 200) {
-        const ratio = (body.match(/[A-Za-z0-9+/=]{20,}/g)||[]).join("").length / body.length;
-        if (ratio > 0.7) out.push(alert("Encoded Request Payload", `${method} → ${url} (b64 ratio ${(ratio*100).toFixed(0)}%)`, "medium"));
-      }
-    } catch {}
-    return out;
-  }
-
-  const _fetch = fetch;
-  window.fetch = function(input, init = {}) {
-    const url = typeof input === "string" ? input : (input?.url ?? String(input));
-    analyzeReq(url, (init.method||"GET").toUpperCase(), init.body ? String(init.body) : null).forEach(emit);
-    return _fetch.apply(this, arguments);
-  };
-
-  const _open = XMLHttpRequest.prototype.open, _send = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.open = function(m, u) { this._om = m; this._ou = u; return _open.apply(this, arguments); };
-  XMLHttpRequest.prototype.send = function(body) {
-    analyzeReq(this._ou||"", this._om||"GET", body ? String(body) : null).forEach(emit);
-    return _send.apply(this, arguments);
-  };
+  // (Network hooks moved to inject.js Main World hook)
 
   // ── Shadow DOM inspection ───────────────────────────────────────────────────
   function inspectShadow(root, host) {
@@ -89,12 +55,7 @@
     for (const el of root.querySelectorAll("*")) if (el.shadowRoot) inspectShadow(el.shadowRoot, el);
   }
 
-  const _attachShadow = Element.prototype.attachShadow;
-  Element.prototype.attachShadow = function(init) {
-    const root = _attachShadow.call(this, init);
-    setTimeout(() => inspectShadow(root, this), 0);
-    return root;
-  };
+  // (attachShadow hook removed because it's blind to Main World; Scans.shadows() handles it)
 
   // ── Attribute mutation analysis ─────────────────────────────────────────────
   function analyzeAttr(tag, attr, oldVal, newVal, el) {
@@ -208,7 +169,7 @@
       }
     }
     if (scan) ThreatDetector.runScan().forEach(a => { if(window.OctoLogger) try{OctoLogger.log(a.type,a.details,a.severity);}catch{} });
-  }).observe(document.documentElement, {
+  }).observe(document, {
     childList: true, subtree: true,
     attributes: true, attributeOldValue: true,
     attributeFilter: ["src","href","action","formaction","data","type","integrity","http-equiv","content","srcdoc","sandbox"],
