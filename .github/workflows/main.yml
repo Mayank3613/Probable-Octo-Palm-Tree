@@ -1,0 +1,108 @@
+name: CI Pipeline
+
+on:
+push:
+branches:
+- main
+- develop
+pull_request:
+branches:
+- main
+
+permissions:
+contents: read
+security-events: write
+
+jobs:
+backend-validation:
+name: Backend & Local Agent Validation
+runs-on: ubuntu-latest
+
+
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
+
+  - name: Set Up Python
+    uses: actions/setup-python@v5
+    with:
+      python-version: "3.11"
+
+  - name: Install Dependencies
+    run: |
+      python -m pip install --upgrade pip
+
+      if [ -f backend-api/requirements.txt ]; then
+        pip install -r backend-api/requirements.txt
+      elif [ -f requirements.txt ]; then
+        pip install -r requirements.txt
+      fi
+
+  - name: Validate Python Files
+    run: |
+      python -m compileall backend-api
+      python -m compileall local-agent
+
+
+dashboard-build:
+name: Dashboard Build Check
+runs-on: ubuntu-latest
+
+
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
+
+  - name: Set Up Node.js
+    uses: actions/setup-node@v4
+    with:
+      node-version: 20
+
+  - name: Install Dashboard Dependencies
+    working-directory: dashboard
+    run: npm install
+
+  - name: Build Dashboard
+    working-directory: dashboard
+    run: npm run build
+
+
+extension-validation:
+name: Browser Extension Validation
+runs-on: ubuntu-latest
+
+
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
+
+  - name: Verify Manifest Exists
+    run: |
+      test -f extension/manifest.json
+
+
+codeql:
+name: CodeQL Security Scan
+runs-on: ubuntu-latest
+
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+
+steps:
+  - name: Checkout Repository
+    uses: actions/checkout@v4
+
+  - name: Initialize CodeQL
+    uses: github/codeql-action/init@v3
+    with:
+      languages: python,javascript
+
+  - name: Autobuild
+    uses: github/codeql-action/autobuild@v3
+
+  - name: Perform CodeQL Analysis
+    uses: github/codeql-action/analyze@v3
+
