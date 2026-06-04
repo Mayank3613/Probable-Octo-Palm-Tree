@@ -4,18 +4,13 @@
    Fully SQLite-driven realtime dashboard
 ──────────────────────────────────────────────────────────────── */
 
-import {
-  fetchFromAPI,
-  startLivePolling
-} from "../modules/api.js";
-
 let telemetryPolling = null;
 
 /* ────────────────────────────────────────────────────────────────
    MAIN VIEW
 ──────────────────────────────────────────────────────────────── */
 
-export async function renderTelemetryView() {
+async function renderTelemetryView() {
 
   const main = document.getElementById("main-content");
 
