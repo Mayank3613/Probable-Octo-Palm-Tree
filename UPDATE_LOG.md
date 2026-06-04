@@ -3,6 +3,14 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-04] Dashboard ES6 Module & Live Telemetry Fix
+
+### Bug Fixes
+- **Dashboard Telemetry Rendering Fixed:** Resolved an issue where the dashboard was completely blank and failing to display live telemetry data.
+  - **Root Cause:** A partial, incomplete migration to ES6 Modules added `import` and `export` statements to `api.js`, `telemetry.js`, `stats.js`, and `main.js`. However, `index.html` was loading them as classic global scripts (`<script src="...">`), causing the browser to throw fatal `SyntaxError: Cannot use import statement outside a module` and `SyntaxError: Unexpected token 'export'`.
+  - **Resolution:** Stripped out the broken ES6 module keywords and the malformed `type="module"` tag, restoring the dashboard's JavaScript architecture to purely global scripts. The SQLite backend data now hydrates into the UI and polls correctly in real time without crashing.
+
+---
 ## [2026-06-02] Professional Polish, Security Fixes & Bug Squash
 
 ### Security Fixes (CRITICAL)
