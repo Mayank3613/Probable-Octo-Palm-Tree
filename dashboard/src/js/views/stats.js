@@ -4,10 +4,6 @@
    Fully realtime SQLite analytics dashboard
 ──────────────────────────────────────────────────────────────── */
 
-import {
-  fetchFromAPI
-} from "../modules/api.js";
-
 let weeklyChart = null;
 let severityChart = null;
 let statsPolling = null;
@@ -16,7 +12,7 @@ let statsPolling = null;
    MAIN STATS VIEW
 ──────────────────────────────────────────────────────────────── */
 
-export async function renderStatsView() {
+async function renderStatsView() {
 
   const main = document.getElementById("main-content");
 

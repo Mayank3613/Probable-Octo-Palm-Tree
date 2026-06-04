@@ -39,7 +39,7 @@ async function safeFetch(url) {
    FETCH LIVE TELEMETRY
 ========================================================================= */
 
-export async function fetchLiveTelemetry(limit = 50) {
+async function fetchLiveTelemetry(limit = 50) {
 
   const data = await safeFetch(
     `${API_BASE}/telemetry/live?limit=${limit}`
@@ -57,7 +57,7 @@ export async function fetchLiveTelemetry(limit = 50) {
    FETCH DASHBOARD STATS
 ========================================================================= */
 
-export async function fetchDashboardStats() {
+async function fetchDashboardStats() {
 
   const data = await safeFetch(
     `${API_BASE}/telemetry/stats`
@@ -82,7 +82,7 @@ export async function fetchDashboardStats() {
    FETCH CRITICAL EVENTS
 ========================================================================= */
 
-export async function fetchCriticalThreats(limit = 20) {
+async function fetchCriticalThreats(limit = 20) {
 
   const data = await safeFetch(
     `${API_BASE}/telemetry/critical?limit=${limit}`
@@ -100,7 +100,7 @@ export async function fetchCriticalThreats(limit = 20) {
    MAIN DASHBOARD FETCH
 ========================================================================= */
 
-export async function fetchFromAPI() {
+async function fetchFromAPI() {
 
   try {
 
@@ -143,7 +143,7 @@ critical: []
    HEALTH CHECK
 ========================================================================= */
 
-export async function checkBackendHealth() {
+async function checkBackendHealth() {
 
   try {
 
@@ -164,7 +164,7 @@ export async function checkBackendHealth() {
    AUTO REFRESH HELPER
 ========================================================================= */
 
-export function startLivePolling(callback, interval = 3000) {
+function startLivePolling(callback, interval = 3000) {
 
   // Initial fetch
   callback();

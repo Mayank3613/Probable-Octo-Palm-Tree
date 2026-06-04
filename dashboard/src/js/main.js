@@ -7,7 +7,6 @@
 /* =========================================================================
    APPLICATION BOOTSTRAP
 ========================================================================= */
-import { renderTelemetryView } from "./views/telemetry.js";
 (async function bootstrap() {
 
   console.log(
