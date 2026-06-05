@@ -4,28 +4,29 @@
 ─────────────────────────────────────────────────────────────────────────── */
 :root {
   /* Backgrounds */
-  --bg:      #030712;
-  --panel:   #0d1117;
-  --panel2:  #111827;
-  --border:  #1f2937;
+  --bg:      #09090b;   /* zinc-950 */
+  --panel:   rgba(24, 24, 27, 0.65);  /* zinc-900 with opacity for blur */
+  --panel2:  rgba(39, 39, 42, 0.7);   /* zinc-800 with opacity */
+  --border:  rgba(63, 63, 70, 0.5);   /* zinc-700 */
 
   /* Accent palette */
-  --accent:  #10b981;   /* green  – safe / active */
-  --danger:  #ef4444;   /* red    – critical      */
-  --warn:    #f59e0b;   /* amber  – high          */
-  --info:    #3b82f6;   /* blue   – informational */
-  --purple:  #8b5cf6;   /* purple – stats         */
+  --accent:  #10b981;   /* Emerald 500 – safe / active */
+  --danger:  #f43f5e;   /* Rose 500    – critical      */
+  --warn:    #f59e0b;   /* Amber 500   – high          */
+  --info:    #6366f1;   /* Indigo 500  – informational */
+  --purple:  #8b5cf6;   /* Violet 500  – stats         */
 
   /* Text */
-  --text:    #f1f5f9;
-  --muted:   #6b7280;
-  --muted2:  #9ca3af;
+  --text:    #f8fafc;   /* slate-50 */
+  --muted:   #94a3b8;   /* slate-400 */
+  --muted2:  #cbd5e1;   /* slate-300 */
 
   /* Glow overlays */
-  --glow:    rgba(16,185,129,.18);
-  --dglow:   rgba(239,68,68,.18);
-  --wglow:   rgba(245,158,11,.18);
+  --glow:    rgba(16,185,129,.15);
+  --dglow:   rgba(244,63,94,.15);
+  --wglow:   rgba(245,158,11,.15);
 
   /* Typography */
-  --font: 'JetBrains Mono', ui-monospace, monospace;
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
