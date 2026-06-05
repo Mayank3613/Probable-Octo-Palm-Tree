@@ -1,7 +1,36 @@
 # Probable-Octo-Palm-Tree — Update Log
 
 All changes to the project are documented here in reverse chronological order.
+---
+## [2026-06-04] Resolved GitHub Actions Workflow Issues and Improved Deployment Automation
 
+### Implementations
+Focused on CI/CD workflow fixes, GitHub Actions configuration, and project deployment stability.
+
+### Changes Made
+- Fixed errors in `.github/workflows/main.yml`.
+- Corrected GitHub Actions workflow configuration and validation issues.
+- Updated workflow to support the `update` branch.
+- Verified workflow syntax and build execution process.
+- Reviewed project folder structure and import paths.
+- Improved deployment reliability and repository automation.
+---
+## [2026-06-03] Added Security Policy, MIT license, and Repository Documentation Improvements
+
+### Overview
+Focused on improving project security, licensing, and repository documentation for better maintainability and professional open-source development.
+
+### Changes Made
+- Added `SECURITY.md` with vulnerability reporting guidelines and supported versions.
+- Added MIT License for open-source usage, modification, and distribution.
+- Reviewed GitHub Security Advisories and code scanning alerts.
+- Improved repository documentation and project structure.
+- Enhanced overall project security and collaboration readiness.
+
+### Files Added/Updated
+- LICENSE
+- SECURITY.md
+- README.md
 ---
 ## [2026-06-05] Premium Dashboard Aesthetics & Glassmorphism
 
