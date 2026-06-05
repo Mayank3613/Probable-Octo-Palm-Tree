@@ -3,6 +3,16 @@
 All changes to the project are documented here in reverse chronological order.
 
 ---
+## [2026-06-05] Premium Dashboard Aesthetics & Glassmorphism
+
+### UI Improvements
+- **Typography Overhaul:** Replaced the default monospace font with Google's `Inter` for clean, professional UI text, reserving `JetBrains Mono` strictly for code snippets and IP addresses.
+- **Glassmorphic Design:** Upgraded dashboard panels and cards with `backdrop-filter: blur(12px)` to create a sleek, translucent frosted-glass aesthetic.
+- **Color Palette & Depth:** Replaced the flat `#030712` background with a sophisticated `zinc-950` palette and a subtle radial gradient. Upgraded accent colors (Emerald, Rose, Amber, Indigo) to be more vibrant and accessible.
+- **Micro-animations:** Added smooth `.2s ease-in-out` transitions and refined drop shadows to buttons and interactive elements for a more responsive, tactile feel.
+- **CI/CD Fix:** Resolved a syntax indentation error in `.github/workflows/main.yml` that was causing all GitHub Actions pipeline runs to fail.
+
+---
 ## [2026-06-04] Dashboard ES6 Module & Live Telemetry Fix
 
 ### Bug Fixes
