@@ -203,12 +203,19 @@
     log(type, details, severity = "medium") {
       console.warn(`[OctoPlamTree Alert] [${severity.toUpperCase()}] ${type}: ${details}`);
 
+      let riskScore = 0;
+      if (severity === "critical") riskScore = 90;
+      else if (severity === "high") riskScore = 75;
+      else if (severity === "medium") riskScore = 40;
+      else if (severity === "low") riskScore = 15;
+
       const payload = {
         timestamp:   new Date().toISOString(),
         threat_type: type,
         details:     details,
         severity:    severity,
-        url:         window.location.href
+        url:         window.location.href,
+        risk_score:  riskScore
       };
 
       if (DedupeCache.isDuplicate("log_threat", payload)) {

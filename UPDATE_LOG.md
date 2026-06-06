@@ -2,6 +2,14 @@
 
 All changes to the project are documented here in reverse chronological order.
 ---
+## [2026-06-06] Extension Logger & Dashboard Risk Calculation Fix
+
+### Bug Fixes
+- **Average Risk showing 0 Fixed:** Resolved an issue where DOM-based threat events (like Suspicious Attribute Mutation) were not being assigned a risk score by the browser extension logger.
+  - **Resolution:** Updated `browser-extension/modules/logger.js` to automatically compute and assign an appropriate `risk_score` (Critical = 90, High = 75, Medium = 40, Low = 15) based on severity level. This correctly populates the Average Risk KPI on the backend dashboard.
+- **Telemetry Synchronization:** Resynchronized the backend database with the local browser extension cache by clearing the `/telemetry/clear` endpoint to ensure the Dashboard perfectly matches the Extension threat counts.
+
+---
 ## [2026-06-04] Resolved GitHub Actions Workflow Issues and Improved Deployment Automation
 
 ### Implementations
