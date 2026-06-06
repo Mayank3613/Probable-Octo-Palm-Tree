@@ -1,0 +1,14 @@
+{
+    "model_name": "OctoPalmTree URL Threat Detector",
+    "algorithm": "RandomForestClassifier",
+    "version": "2.0.0",
+    "trained_at": "2026-06-06T16:17:36.307428",
+    "feature_count": 59,
+    "dataset_size": 5005,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 1.0,
+    "cv_accuracy": 0.9996
+}

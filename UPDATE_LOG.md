@@ -2,6 +2,38 @@
 
 All changes to the project are documented here in reverse chronological order.
 ---
+## [2026-06-06] AI Engine Enhancement Update
+
+### Updated
+- Expanded URL feature extraction from basic indicators to 59 advanced phishing detection features.
+- Upgraded the ML pipeline with improved feature engineering, entropy analysis, keyword detection, suspicious TLD detection, and URL structure analysis.
+- Enhanced FastAPI endpoints with support for:
+- Single URL prediction
+- Batch URL prediction
+- URL feature analysis
+- Model metadata inspection
+- Added backward-compatible /scan/url endpoint to maintain integration with existing backend services and dashboard components.
+- Improved threat reasoning engine to provide explainable detection results.
+
+### Tested
+- Verified successful model training and loading.
+- Validated URL feature extraction across benign and malicious URL samples.
+- Tested /scan/url endpoint compatibility with backend API.
+- Confirmed end-to-end phishing detection workflow returns risk score, classification, and detection reasons.
+- Verified FastAPI service startup, model loading, and endpoint accessibility.
+
+### Fixed
+- Resolved SQLite schema compatibility issues affecting URL scan storage.
+- Fixed API response format mismatches between backend services and AI engine.
+- Corrected endpoint integration issues causing request failures.
+- Restored legacy endpoint support for existing dashboard and backend workflows.
+
+### Improvements
+- Added risk scoring and explainable threat classification.
+- Increased detection coverage for phishing, impersonation, suspicious TLDs, encoded URLs, and obfuscated links.
+- Improved maintainability through structured API design and model metadata management.
+---
+
 ## [2026-06-06] Extension Logger & Dashboard Risk Calculation Fix
 
 ### Bug Fixes
