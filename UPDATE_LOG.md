@@ -2,6 +2,19 @@
 
 All changes to the project are documented here in reverse chronological order.
 ---
+## [2026-06-07] Dynamic GeoIP Circuit Breaker & Fallback System
+
+### Added
+- **Backend Circuit Breaker**: Created `geo_service.py` to handle MaxMind GeoIP lookups with an automatic circuit breaker. If MaxMind times out or fails 3 times, it automatically opens the circuit for 60 seconds and falls back to `ip-api.com`.
+- **Dynamic Infrastructure Dashboard**: Rebuilt the Infrastructure view (`infrastructure.js`) to poll the live `/health` endpoint instead of relying on static mock data.
+
+### Fixed
+- **UI Render Fixes**: Resolved an issue where Vite failed to parse double-escaped backticks in template literals.
+- **Static Endpoints Restored**: Re-added the static endpoints back into the UI so the dashboard looks populated, while keeping the GeoIP data live and dynamic.
+
+### Polish
+- **Toast Notifications**: Added `toast.js` integration to slide out a color-coded toast (Warning/Error/Success) dynamically when the GeoIP circuit breaker transitions states (e.g. online -> degraded -> offline).
+---
 ## [2026-06-06] AI Engine Enhancement Update
 
 ### Updated
