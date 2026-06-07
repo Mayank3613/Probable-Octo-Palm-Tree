@@ -2,12 +2,7 @@
    Shows extension status, API endpoint health, and monitored endpoints.
 ─────────────────────────────────────────────────────────────────────────── */
 
-const ENDPOINTS = [
-  { name: 'Local API Server',        url: 'http://127.0.0.1:8000',            status: 'online',   latency: '4ms'   },
-  { name: 'Threat Intelligence Feed',url: 'https://feeds.threatintel.io/v2',  status: 'online',   latency: '122ms' },
-  { name: 'YARA Rules CDN',          url: 'https://rules.yara-db.net',        status: 'online',   latency: '88ms'  },
-  { name: 'GeoIP Database',          url: 'https://geoip.maxmind.com',        status: 'degraded', latency: '320ms' },
-];
+let _lastGeoStatus = null;   // track transitions
 
 function renderInfrastructureView() {
   const main = document.getElementById('main-content');
@@ -53,20 +48,87 @@ function renderInfrastructureView() {
   `);
 }
 
-function renderEndpoints() {
-  const el = document.getElementById('endpoints-list');
-  if (!el) return;
+function renderEndpointCard(name, data) {
+    const statusClass = {
+        online:    "status-online",
+        degraded:  "status-degraded",
+        offline:   "status-offline",
+    }[data.status] ?? "status-offline";
+    
+    const color = data.status === 'online' ? 'var(--accent)' : 'var(--warn)';
 
-  el.innerHTML = `
-    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
-      ${ENDPOINTS.map(e => `
-        <div class="risk-stat" style="text-align:left;padding:12px">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-            <div style="width:7px;height:7px;border-radius:50%;background:${e.status === 'online' ? 'var(--accent)' : 'var(--warn)'}"></div>
-            <span style="font-size:12px;font-weight:700;color:var(--text)">${e.name}</span>
-          </div>
-          <div style="font-size:10px;color:var(--muted);margin-bottom:2px">${e.url}</div>
-          <div style="font-size:10px;color:${e.status === 'online' ? 'var(--accent)' : 'var(--warn)'}">${e.status} · ${e.latency}</div>
-        </div>`).join('')}
-    </div>`;
+    // Build the card HTML
+    return `
+      <div class="endpoint-card risk-stat ${statusClass}" style="text-align:left;padding:12px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <div style="width:7px;height:7px;border-radius:50%;background:${color}"></div>
+          <span class="endpoint-name" style="font-size:12px;font-weight:700;color:var(--text)">${name}</span>
+        </div>
+        <div class="endpoint-url" style="font-size:10px;color:var(--muted);margin-bottom:2px">${data.url ?? data.provider}</div>
+        <div class="endpoint-badge" style="font-size:10px;color:${color}">
+          ${data.status}${data.latency_ms ? ` · ${data.latency_ms}ms` : ""}
+        </div>
+        ${data.status !== "online" && data.fallback_provider
+          ? `<div class="endpoint-fallback" style="font-size:10px;color:var(--text);margin-top:4px;">↳ fallback: ${data.fallback_provider}</div>`
+          : ""}
+      </div>`;
+}
+
+async function refreshInfrastructure() {
+    try {
+        const resp = await fetch(`http://127.0.0.1:8000/health`);
+        const data = await resp.json();
+        const geo  = data.endpoints?.geoip;
+
+        if (geo) {
+            // Fire toast only on status *change*
+            if (geo.status !== _lastGeoStatus && _lastGeoStatus !== null) {
+                if (geo.status === "degraded") {
+                    showToast("GeoIP degraded", "Switched to ip-api.com fallback.", "warning");
+                } else if (geo.status === "offline") {
+                    showToast("GeoIP offline", "Attribution data unavailable.", "error");
+                } else if (geo.status === "online") {
+                    showToast("GeoIP recovered", "Primary provider back online.", "success");
+                }
+            }
+            _lastGeoStatus = geo.status;
+            
+            // Update the warning banner explicitly
+            const main = document.getElementById('view-infrastructure');
+            if (main) {
+                const existingBanner = document.getElementById('geoip-warning-banner');
+                if (geo.status !== 'online' && !existingBanner) {
+                    const header = main.querySelector('.header');
+                    header.insertAdjacentHTML('afterend', `
+                        <div id="geoip-warning-banner" class="alert alert-warning" style="background: rgba(234, 179, 8, 0.1); border-left: 4px solid var(--warn); padding: 12px 16px; margin-bottom: 16px; border-radius: 4px;">
+                          <strong style="color: var(--warn); display: block; margin-bottom: 4px;">⚠️ Warning: GeoIP Database ${geo.status === 'degraded' ? 'Degraded' : 'Offline'}</strong>
+                          <span style="color: var(--text); font-size: 13px;">The primary GeoIP database (geoip.maxmind.com) is currently ${geo.status}. The system has automatically fallen back to <b>${geo.fallback_provider}</b> for IP geolocation to prevent data loss.</span>
+                        </div>
+                    `);
+                } else if (geo.status === 'online' && existingBanner) {
+                    existingBanner.remove();
+                }
+            }
+        }
+
+        // Re-render cards
+        const el = document.getElementById("endpoints-list");
+        if (el && data.endpoints) {
+            const allEndpoints = {
+                "Local API Server": { url: "http://127.0.0.1:8000", status: "online", latency_ms: 4 },
+                "Threat Intelligence Feed": { url: "https://feeds.threatintel.io/v2", status: "online", latency_ms: 122 },
+                "YARA Rules CDN": { url: "https://rules.yara-db.net", status: "online", latency_ms: 88 },
+                "GeoIP Database": data.endpoints.geoip
+            };
+
+            el.innerHTML = `
+                <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+                  ${Object.entries(allEndpoints)
+                        .map(([name, d]) => renderEndpointCard(name, d))
+                        .join("")}
+                </div>`;
+        }
+    } catch (e) {
+        console.error("Failed to refresh infrastructure", e);
+    }
 }

@@ -19,6 +19,20 @@ COLORS = {
 # Process tracker
 processes = []
 
+def resolve_service_python(base_dir, service_dir):
+    """Returns the service-specific venv Python path when available, otherwise falls back to sys.executable."""
+    if sys.platform == "win32":
+        venv_python = os.path.join(base_dir, service_dir, ".venv", "Scripts", "python.exe")
+    else:
+        venv_python = os.path.join(base_dir, service_dir, ".venv", "bin", "python")
+
+    if os.path.exists(venv_python):
+        print_colored("SYSTEM", "SYSTEM", f"Using virtualenv Python for {service_dir}: {venv_python}\n")
+        return venv_python
+
+    print_colored("SYSTEM", "SYSTEM", f"No virtualenv found for {service_dir}; falling back to {sys.executable}\n")
+    return sys.executable
+
 def print_colored(prefix, color_name, line):
     color = COLORS.get(color_name, COLORS["RESET"])
     print(f"{color}[{prefix}]{COLORS['RESET']} {line}", end="")
@@ -98,12 +112,15 @@ def run_health_checks():
 
 def main():
     base_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_python = resolve_service_python(base_dir, "backend-api")
+    agent_python = resolve_service_python(base_dir, "local-agent")
+    ai_python = resolve_service_python(base_dir, "ai-engine")
     
     try:
         # 1. Start Backend API
         run_service(
             name="BACKEND",
-            command=[sys.executable, "-m", "uvicorn", "app.main:app", "--reload"],
+            command=[backend_python, "-m", "uvicorn", "app.main:app", "--reload"],
             cwd=os.path.join(base_dir, "backend-api"),
             color_name="BACKEND"
         )
@@ -119,7 +136,7 @@ def main():
         # 3. Start Local Agent
         run_service(
             name="AGENT",
-            command=[sys.executable, "agent_main.py"],
+            command=[agent_python, "agent_main.py"],
             cwd=os.path.join(base_dir, "local-agent"),
             color_name="AGENT"
         )
@@ -127,7 +144,7 @@ def main():
         # 4. Start AI Engine
         run_service(
             name="AI_ENGINE",
-            command=[sys.executable, "-m", "uvicorn", "app:app", "--port", "8001"],
+            command=[ai_python, "-m", "uvicorn", "app:app", "--port", "8001"],
             cwd=os.path.join(base_dir, "ai-engine"),
             color_name="AI_ENGINE"
         )

@@ -473,3 +473,33 @@
 
 /* ─── EMPTY STATE ────────────────────────────────────────────────────────── */
 .empty { text-align: center; padding: 32px 20px; color: var(--muted); font-size: 12px; }
+
+/* ─── MULTI-TOAST CONTAINER ──────────────────────────────────────────────── */
+#toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    z-index: 999;
+}
+
+.toast-custom {
+    padding: .6rem 1rem;
+    border-radius: 8px;
+    font-size: 13px;
+    background: var(--panel2);
+    border-left: 3px solid;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity .3s, transform .3s;
+    max-width: 280px;
+    color: var(--text);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.toast-visible      { opacity: 1; transform: translateY(0); }
+.toast-warning      { border-color: #EF9F27; }
+.toast-error        { border-color: #E24B4A; }
+.toast-success      { border-color: #639922; }

@@ -24,6 +24,12 @@ from .routers import (
     attribution
 )
 
+from .services.geo_service import GeoIPService
+geo_service = GeoIPService(
+    maxmind_account_id  = os.getenv("MAXMIND_ACCOUNT_ID",  ""),
+    maxmind_license_key = os.getenv("MAXMIND_LICENSE_KEY", ""),
+)
+
 # =========================================================
 # BASE DIRECTORY
 # =========================================================
@@ -199,6 +205,9 @@ async def health_check():
         "application": APP_NAME,
         "version": VERSION,
         "uptime_seconds": uptime_seconds,
+        "endpoints": {
+            "geoip": geo_service.health()
+        },
         "telemetry": "active",
         "database": "connected",
         "dashboard_api": "online"

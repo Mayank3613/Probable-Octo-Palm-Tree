@@ -200,8 +200,25 @@ def get_ip_owner(ip):
 
 def get_geoip(ip):
 
+    def _fallback(ip):
+        try:
+            resp = requests.get(f"http://ip-api.com/json/{ip}?fields=status,country,city", timeout=3)
+            if resp.status_code == 200:
+                data = resp.json()
+                if data.get("status") == "success":
+                    return {
+                        "country": data.get("country", "Unknown"),
+                        "city": data.get("city", "Unknown")
+                    }
+        except Exception:
+            pass
+        return {
+            "country": "Unknown",
+            "city": "Unknown"
+        }
+
     if geo_reader is None:
-        return {"country": "Unknown", "city": "Unknown"}
+        return _fallback(ip)
 
     try:
 
@@ -214,10 +231,7 @@ def get_geoip(ip):
 
     except Exception:
 
-        return {
-            "country": "Unknown",
-            "city": "Unknown"
-        }
+        return _fallback(ip)
 
 # ============================================================
 

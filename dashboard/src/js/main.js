@@ -104,6 +104,9 @@ async function fetchData() {
     if (typeof updateBadge === "function") {
       updateBadge();
     }
+    if (typeof refreshInfrastructure === "function") {
+      refreshInfrastructure();
+    }
     /* ─── LIVE STATUS LOG ────────────────────────────────────────── */
     console.log(
       `[OCTO-PALM] Live telemetry updated (${AppState.threats.length} threats)`
