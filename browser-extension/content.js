@@ -1,5 +1,7 @@
 // Probable-Octo-Palm-Tree Content Script
-// Orchestrates DOM scanning, hooks MAIN world APIs, and reports to Background
+// Orchestrates DOM scanning, hooks MAIN world APIs, and reports to Background.
+// v2.1: SPA-aware — detects navigations via History API patches in inject.js,
+//        popstate, and hashchange; triggers re-scans on each virtual page load.
 
 (function() {
   // Trusted domains — skip DOM scanning entirely on these to save CPU
@@ -51,6 +53,13 @@
       if (window.OctoSessionMonitor && payload.value) {
         window.OctoSessionMonitor.scanJWT(payload.value, "cookie_event");
       }
+    } else if (action === "spa_navigation") {
+      // History API navigation (pushState / replaceState) fired from inject.js.
+      // Schedule a fresh scan after a short delay to allow the SPA framework
+      // to finish rendering the new virtual page into the DOM.
+      if (!onTrustedDomain) {
+        scheduleSpaRescan("history_api:" + (payload.method || "unknown"));
+      }
     }
   });
 
@@ -68,6 +77,31 @@
     }
   }
 
+  // 4. SPA Navigation Re-scan
+  // When a SPA navigates, the DOM is mutated but no page load fires.
+  // We debounce the re-scan so rapid consecutive pushState calls (e.g. router
+  // scroll restoration) collapse into a single scan run.
+  let _spaRescanTimer = null;
+  const SPA_RESCAN_DELAY_MS = 400; // ms to wait after last navigation signal
+
+  function scheduleSpaRescan(reason) {
+    if (_spaRescanTimer) clearTimeout(_spaRescanTimer);
+    _spaRescanTimer = setTimeout(function() {
+      _spaRescanTimer = null;
+      try {
+        if (!window.OctoThreatDetector || !window.OctoLogger) return;
+        // runSpaNavigationScan() clears the dedup cache so new-page content
+        // that happens to match a seen key from the previous view is re-evaluated.
+        const alerts = window.OctoThreatDetector.runSpaNavigationScan();
+        alerts.forEach(function(a) {
+          window.OctoLogger.log(a.type, a.details, a.severity);
+        });
+      } catch (e) {
+        console.debug("[Probable-Octo-Palm-Tree] SPA rescan error:", e);
+      }
+    }, SPA_RESCAN_DELAY_MS);
+  }
+
   // Only run DOM scanning on untrusted domains — saves CPU on Google, YouTube, etc.
   if (!onTrustedDomain) {
     if (document.readyState === "loading") {
@@ -82,6 +116,18 @@
 
     window.addEventListener("load", () => {
       setTimeout(runFullScan, 1000);
+    });
+
+    // 5. SPA: hashchange — covers hash-router SPAs (e.g. Vue Router in hash mode)
+    window.addEventListener("hashchange", function() {
+      scheduleSpaRescan("hashchange");
+    });
+
+    // 6. SPA: popstate — covers back/forward navigation in history-mode SPAs.
+    //    Note: inject.js also fires a synthetic popstate on pushState/replaceState,
+    //    so this listener catches those too as a belt-and-suspenders fallback.
+    window.addEventListener("popstate", function() {
+      scheduleSpaRescan("popstate");
     });
 
     // Periodic scan only on untrusted domains, every 30s (MutationObserver handles real-time)

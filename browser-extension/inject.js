@@ -1,5 +1,5 @@
 // Probable-Octo-Palm-Tree Hook Injection Script (Runs in the page context / MAIN world)
-// Direct interceptor for APIs (Fetch, XHR, WebSocket) and document.cookie.
+// Direct interceptor for APIs (Fetch, XHR, WebSocket, History) and document.cookie.
 
 (function() {
   // Prevent duplicate injection
@@ -123,4 +123,32 @@
   } catch (e) {
     // Failed to hook document.cookie descriptor; non-fatal
   }
+
+  // --- 5. Intercept History API for SPA Navigation Detection ---
+  // SPAs mutate the URL via pushState/replaceState without triggering a page reload.
+  // We patch these methods to emit an OctoSpaNavigated event that content.js listens
+  // for and uses to re-run threat scans on the freshly rendered view.
+  (function patchHistoryApi() {
+    function wrapHistoryMethod(methodName) {
+      const original = history[methodName];
+      history[methodName] = function(state, title, url) {
+        const result = original.apply(this, arguments);
+        try {
+          // Dispatch to content.js so it can trigger a re-scan
+          dispatchSecurityEvent("spa_navigation", {
+            method: methodName,
+            url: url ? String(url) : location.href
+          });
+          // Also fire a native-style event so other listeners (e.g. analytics) still work
+          window.dispatchEvent(new PopStateEvent("popstate", { state }));
+        } catch (e) {
+          // Non-fatal; never break the page's own navigation
+        }
+        return result;
+      };
+    }
+
+    wrapHistoryMethod("pushState");
+    wrapHistoryMethod("replaceState");
+  })();
 })();
