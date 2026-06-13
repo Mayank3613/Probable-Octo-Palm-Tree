@@ -198,6 +198,7 @@
     isBlocked:      url => { const h = hostOf(url); return BLOCKED_DOMAINS.has(h) || [...BLOCKED_DOMAINS].some(d => h.endsWith("." + d)); },
     addBlockedHost: host => BLOCKED_DOMAINS.add(host.toLowerCase()),
     getCorrLog:     () => [...corrLog],
+    assessUrl,
     inspectBody,
   };
 })();

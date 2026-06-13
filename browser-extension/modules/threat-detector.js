@@ -189,6 +189,50 @@
     });
     if (hiddenFrames.length)
       emit(mkAlert("Hidden Iframe (Dynamic)", `${hiddenFrames.length} dynamically injected hidden iframe(s)`, "high"));
+
+    // Scan node and all descendants for suspicious attributes (inline event handlers and javascript: URIs)
+    const elements = [];
+    if (node.nodeType === 1) elements.push(node);
+    if (node.querySelectorAll) elements.push(...node.querySelectorAll("*"));
+
+    for (const el of elements) {
+      if (!el.attributes) continue;
+      const tag = el.tagName.toLowerCase();
+      
+      for (let i = 0; i < el.attributes.length; i++) {
+        const attr = el.attributes[i];
+        const name = attr.name.toLowerCase();
+        const val = attr.value;
+
+        if (!val) continue;
+
+        // 1. Inline event handler (starts with 'on')
+        if (name.startsWith("on")) {
+          const isSuspicious = XSS_PAT.some(p => p.test(val)) || 
+                               DYNA_CALLS.some(k => val.includes(k)) || 
+                               /cookie|eval|window|location|document|atob|String\.fromCharCode/i.test(val);
+          if (isSuspicious) {
+            emit(mkAlert(
+              "Suspicious Inline Event Handler (Dynamic)",
+              `Dynamically injected <${tag}> with inline event handler '${name}="${val.slice(0, 100)}"'`,
+              "critical"
+            ));
+          }
+        }
+        
+        // 2. javascript: URI in href, src, action, data, formaction
+        if (["href", "src", "action", "data", "formaction"].includes(name) && val.trim().toLowerCase().startsWith("javascript:")) {
+          const isSuspicious = XSS_PAT.some(p => p.test(val)) || 
+                               DYNA_CALLS.some(k => val.includes(k)) || 
+                               /cookie|eval|window|location|document|atob|String\.fromCharCode/i.test(val);
+          emit(mkAlert(
+            "Suspicious Javascript URI (Dynamic)",
+            `Dynamically injected <${tag}> with javascript URI: '${name}="${val.slice(0, 100)}"'`,
+            isSuspicious ? "critical" : "high"
+          ));
+        }
+      }
+    }
   }
 
   // ── Structural threat scans ─────────────────────────────────────────────────
@@ -257,6 +301,7 @@
       return ThreatDetector.runScan();
     },
     getNetworkLog: () => [...networkLog],
+    analyzeReq: analyzeReq,
   };
 
   // ── MutationObserver ────────────────────────────────────────────────────────

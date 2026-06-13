@@ -44,9 +44,55 @@
     const { action, payload } = event.detail || {};
 
     if (action === "log_connection") {
+      const { type, url, method, body } = payload || {};
+      
+      // Run threat analyses in content script context
+      if (window.OctoThreatDetector && typeof window.OctoThreatDetector.analyzeReq === "function") {
+        try {
+          const reqAlerts = window.OctoThreatDetector.analyzeReq(url, method, body);
+          if (Array.isArray(reqAlerts)) {
+            reqAlerts.forEach(a => {
+              if (window.OctoLogger) window.OctoLogger.log(a.type, a.details, a.severity);
+            });
+          }
+        } catch (e) {
+          console.debug("[Probable-Octo-Palm-Tree] analyzeReq error:", e);
+        }
+      }
+
+      if (window.OctoApiInterceptor && typeof window.OctoApiInterceptor.assessUrl === "function") {
+        try {
+          const apiAlerts = window.OctoApiInterceptor.assessUrl(url, method);
+          if (Array.isArray(apiAlerts)) {
+            apiAlerts.forEach(([t, d, s]) => {
+              if (window.OctoLogger) window.OctoLogger.log(t, d, s);
+            });
+          }
+        } catch (e) {
+          console.debug("[Probable-Octo-Palm-Tree] assessUrl error:", e);
+        }
+
+        if (body && typeof window.OctoApiInterceptor.inspectBody === "function") {
+          try {
+            window.OctoApiInterceptor.inspectBody(body, url, method);
+          } catch (e) {
+            console.debug("[Probable-Octo-Palm-Tree] inspectBody error:", e);
+          }
+        }
+      }
+
       // Route connection logs through the Logger module
       if (window.OctoLogger) {
-        window.OctoLogger.logConnection(payload.type, payload.url, payload.method);
+        window.OctoLogger.logConnection(type, url, method);
+      }
+    } else if (action === "log_connection_blocked") {
+      const { type, url, method } = payload || {};
+      if (window.OctoLogger) {
+        window.OctoLogger.log(
+          type === "fetch" ? "Fetch Blocked" : "XHR Blocked",
+          `${type === "fetch" ? "Fetch" : "XHR"} ${method} to blacklisted domain ${url} was blocked`,
+          "critical"
+        );
       }
     } else if (action === "cookie_access") {
       // JWT scanning hook — if a cookie access event contains a JWT, scan it

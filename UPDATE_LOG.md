@@ -2,6 +2,19 @@
 
 All changes to the project are documented here in reverse chronological order.
 ---
+## [2026-06-13] Extension SPA Security & Request Interception Architecture Fix
+
+### Added
+- **Synchronous Main-World Request Blocking**: Implemented direct request intercepting and blocking in `inject.js` using the `BLOCKED_DOMAINS` blacklist.
+- **Request Body Telemetry**: Created a `serializeBody(body)` utility in `inject.js` to serialize `fetch` and `XMLHttpRequest` request bodies and forward them to the content script context.
+- **Dynamic Attribute Scanning**: Enhanced `scanNodeForXSS` in `threat-detector.js` to query all elements within dynamically added DOM subtrees and check attributes for inline event handlers (`on*`) and `javascript:` URIs.
+
+### Fixed
+- **Isolated-World Interception Gap**: Routed connection events (`log_connection`) and request bodies received in `content.js` to `OctoApiInterceptor` and `OctoThreatDetector` so the page's actual traffic is analyzed.
+- **Dynamic XSS Scan Bypass**: Resolved an issue where dynamic inline event handlers (like `<img onerror=...>` or `<a href="javascript:...">`) bypassed SPA checks by only scanning script and iframe tags.
+- **Critical Alerts for Blocks**: Added a dedicated `log_connection_blocked` channel to generate critical alerts on the security dashboard when a blacklisted domain request is blocked.
+
+---
 ## [2026-06-07] Dynamic GeoIP Circuit Breaker & Fallback System
 
 ### Added

@@ -6,6 +6,40 @@
   if (window.__octo_injected) return;
   window.__octo_injected = true;
 
+  const BLOCKED_DOMAINS = new Set([
+    "malicious-api-example.com", "phishing-backend.net", "coinhive.com", "cryptoloot.pro",
+    "minero.cc", "coin-hive.com", "jsecoin.com", "crypto-loot.com", "webmine.pro",
+    "authedmine.com", "ppoi.org", "crypma.com", "keylogger-cdn.net", "data-exfil.xyz", "stealer-api.ru"
+  ]);
+
+  const hostOf = url => {
+    try {
+      return new URL(url, location.href).hostname.toLowerCase();
+    } catch {
+      return "";
+    }
+  };
+
+  function isBlocked(url) {
+    const host = hostOf(url);
+    if (!host) return false;
+    return BLOCKED_DOMAINS.has(host) || [...BLOCKED_DOMAINS].some(d => host.endsWith("." + d));
+  }
+
+  function serializeBody(body) {
+    if (!body) return null;
+    try {
+      if (typeof body === "string") return body;
+      if (body instanceof URLSearchParams) return body.toString();
+      if (body instanceof FormData) {
+        return [...body.entries()].map(([k, v]) => `${k}=${v}`).join("&");
+      }
+      return JSON.stringify(body);
+    } catch {
+      return String(body);
+    }
+  }
+
   // Helper to send events to content.js (wrapped in try-catch for destroyed contexts)
   function dispatchSecurityEvent(action, payload) {
     try {
@@ -40,10 +74,24 @@
           method = options.method || "GET";
         }
 
+        method = method.toUpperCase();
+
+        if (isBlocked(resolvedUrl)) {
+          dispatchSecurityEvent("log_connection_blocked", {
+            type: "fetch",
+            url: resolvedUrl,
+            method: method
+          });
+          return Promise.reject(new Error(`[OctoPlamTree] Blocked request to: ${resolvedUrl}`));
+        }
+
+        const bodyPayload = serializeBody(options.body);
+
         dispatchSecurityEvent("log_connection", {
           type: "fetch",
           url: resolvedUrl,
-          method: method
+          method: method,
+          body: bodyPayload
         });
       } catch (e) {
         // Silently ignore logging errors to avoid breaking page functionality
@@ -58,15 +106,38 @@
   XMLHttpRequest.prototype.open = function(method, url, ...args) {
     this._url = url;
     this._method = method;
+    return originalOpen.apply(this, [method, url, ...args]);
+  };
+
+  const originalSend = XMLHttpRequest.prototype.send;
+  XMLHttpRequest.prototype.send = function(body) {
+    const url = this._url;
+    const method = (this._method || "GET").toUpperCase();
 
     if (url) {
-      dispatchSecurityEvent("log_connection", {
-        type: "xhr",
-        url: url.toString(),
-        method: method
-      });
+      try {
+        const urlStr = url.toString();
+        if (isBlocked(urlStr)) {
+          dispatchSecurityEvent("log_connection_blocked", {
+            type: "xhr",
+            url: urlStr,
+            method: method
+          });
+          this.abort();
+          return;
+        }
+
+        dispatchSecurityEvent("log_connection", {
+          type: "xhr",
+          url: urlStr,
+          method: method,
+          body: serializeBody(body)
+        });
+      } catch (e) {
+        // Silently ignore logging errors
+      }
     }
-    return originalOpen.apply(this, [method, url, ...args]);
+    return originalSend.apply(this, arguments);
   };
 
   // --- 3. Intercept WebSockets ---
