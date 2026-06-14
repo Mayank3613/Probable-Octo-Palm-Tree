@@ -2,6 +2,19 @@
 
 All changes to the project are documented here in reverse chronological order.
 ---
+## [2026-06-14] Premium Cyber Security Command Center UI Redesign
+
+### Added
+- **Interactive Threat Simulator Console**: Created a side console panel in the Live Telemetry view allowing users to inject mock threat vectors (such as dynamic XSS, credential exfiltration, cryptominer script, ransomware encryption, or port scans) directly into the SQLite database.
+- **Dynamic Cyber Radar Scanner**: Built a vector sweep radar visualizer with glowing indicators that plots current threat logs dynamically on a sweeping radial grid.
+- **YARA Rules Sandbox**: Implemented a signature validation editor in the Threat Intelligence tab with template loaders and regex-based scan reporting.
+- **Vulnerability Search & Detail Overlay**: Added reactive filtering to the CVE database and responsive detail modal popup cards for impact scoring and patches.
+
+### Stylized & Optimized
+- **Cyberpunk UI Redesign**: Overhauled layout backgrounds to space-black, border tokens to glowing indigo, card components to use glassmorphic backdrops, and customized scrollbars.
+- **CSS Animations**: Programmed custom keyframes for sweep rotations, glitched titles, dynamic slide-up list entries, and pulsing severity indicator circles.
+
+---
 ## [2026-06-13] Extension SPA Security & Request Interception Architecture Fix
 
 ### Added
