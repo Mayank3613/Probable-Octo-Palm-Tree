@@ -192,6 +192,26 @@ async def root():
     }
 
 # =========================================================
+# IP GEOLOCATION LOOKUP
+# =========================================================
+
+@app.get("/attribution/geoip/{ip}", tags=["Attribution"])
+async def lookup_ip_geoip(ip: str):
+    res = await geo_service.lookup(ip)
+    return {
+        "ip": res.ip,
+        "country": res.country,
+        "country_code": res.country_code,
+        "city": res.city,
+        "asn": res.asn,
+        "org": res.org,
+        "source": res.source,
+        "latency_ms": res.latency_ms,
+        "latitude": res.latitude,
+        "longitude": res.longitude
+    }
+
+# =========================================================
 # HEALTH CHECK
 # =========================================================
 

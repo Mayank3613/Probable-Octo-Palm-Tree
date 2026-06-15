@@ -1,7 +1,60 @@
-/* ─── URL SCANNER VIEW ───────────────────────────────────────────────────────
-   Simulates URL / domain threat analysis with a risk score and check results.
-   In production, wire runScan() to a real analysis API endpoint.
+/* ─── URL SCANNER & ATTRIBUTION VIEW ──────────────────────────────────────────
+   Combines real-time URL threat scanning with an interactive Tactical World Map
+   that maps and attributes IP geolocation telemetry.
 ─────────────────────────────────────────────────────────────────────────── */
+
+// Stylized equirectangular coordinates for major landmasses
+const MAP_CONTINENTS = [
+  // North America
+  [
+    [-168, 65], [-150, 70], [-120, 75], [-90, 72], [-60, 75], [-50, 60], 
+    [-55, 48], [-65, 45], [-75, 35], [-80, 25], [-82, 9], [-95, 15], 
+    [-115, 30], [-125, 48], [-140, 60], [-168, 65]
+  ],
+  // South America
+  [
+    [-80, 10], [-72, 11], [-60, 10], [-50, -5], [-35, -6], [-40, -20], 
+    [-58, -35], [-65, -45], [-72, -55], [-75, -50], [-70, -35], [-74, -20], 
+    [-81, -5], [-81, 5], [-80, 10]
+  ],
+  // Africa
+  [
+    [-17, 15], [-5, 35], [10, 32], [25, 31], [32, 31], [34, 27], 
+    [43, 12], [51, 11], [46, -5], [33, -28], [20, -34], [18, -34], 
+    [12, -15], [8, 4], [-8, 4], [-17, 15]
+  ],
+  // Eurasia (Europe + Asia)
+  [
+    [-9, 38], [-9, 43], [-5, 50], [-5, 58], [5, 60], [10, 65], 
+    [20, 70], [40, 70], [60, 72], [90, 75], [120, 75], [140, 72], 
+    [170, 68], [170, 60], [160, 52], [142, 40], [130, 35], [120, 38], 
+    [118, 22], [108, 16], [100, 1], [98, 10], [90, 15], [80, 8], 
+    [72, 20], [60, 25], [48, 12], [43, 25], [35, 32], [26, 39], 
+    [15, 38], [5, 36], [-9, 38]
+  ],
+  // Australia
+  [
+    [113, -26], [114, -15], [124, -16], [130, -12], [136, -12], [142, -10], 
+    [145, -15], [153, -28], [150, -35], [140, -35], [138, -38], [115, -33], 
+    [113, -26]
+  ],
+  // Greenland
+  [
+    [-73, 78], [-60, 82], [-10, 81], [-20, 70], [-40, 60], [-50, 60], 
+    [-60, 65], [-73, 78]
+  ]
+];
+
+function getContinentSvgPaths() {
+  return MAP_CONTINENTS.map(points => {
+    const pointsStr = points.map(([lon, lat]) => {
+      const x = ((lon + 180) / 360) * 1000;
+      const y = ((90 - lat) / 180) * 500;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `<polygon class="map-continent" points="${pointsStr}" />`;
+  }).join('\n');
+}
 
 function renderScannerView() {
   const main = document.getElementById('main-content');
@@ -11,65 +64,257 @@ function renderScannerView() {
     <div id="view-scan" style="display:none">
       <div class="header">
         <div class="header-left">
-          <h1>URL Scanner</h1>
-          <p>Real-time URL analysis and threat scoring</p>
+          <h1 style="text-shadow: 0 0 15px rgba(99, 102, 241, 0.4)">URL Scanner & Attribution</h1>
+          <p>Real-time URL threat scanning and IP intelligence command center</p>
         </div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1fr 340px;gap:16px">
+      <div class="scan-grid" style="display:grid; grid-template-columns: 1.1fr 1.2fr; gap: 16px;">
+        
+        <!-- Left Column: URL Scanner -->
+        <div style="display:flex; flex-direction:column; gap:16px">
+          
+          <!-- URL Analysis -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <div class="panel-dot" style="background:var(--accent)"></div>
+                Analyse URL / Domain
+              </div>
+            </div>
+            <div class="scan-input-row">
+              <input class="scan-input" id="scan-url-input" placeholder="https://suspicious-site.example.com/path?param=value" />
+              <button class="scan-btn" onclick="runScan()">▶ Analyse</button>
+            </div>
+            <div id="scan-results"></div>
+          </div>
 
-        <!-- Scanner Input + Results -->
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title"><div class="panel-dot" style="background:var(--accent)"></div>Analyse URL / Domain</div>
+          <!-- Scan History -->
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">
+                <div class="panel-dot" style="background:var(--info)"></div>
+                Scan History
+              </div>
+            </div>
+            <div id="scan-history" class="scroll-y" style="max-height:280px">
+              <div class="empty">No scans run yet</div>
+            </div>
           </div>
-          <div class="scan-input-row">
-            <input class="scan-input" id="scan-url-input" placeholder="https://suspicious-site.example.com/path?param=value" />
-            <button class="scan-btn" onclick="runScan()">▶ Analyse</button>
-          </div>
-          <div id="scan-results"></div>
+
         </div>
 
-        <!-- Scan History -->
-        <div class="panel">
+        <!-- Right Column: GeoIP Tactical Map -->
+        <div class="panel map-visualizer-panel" style="display:flex; flex-direction:column; gap:12px">
           <div class="panel-header">
-            <div class="panel-title"><div class="panel-dot" style="background:var(--info)"></div>Scan History</div>
+            <div class="panel-title">
+              <div class="panel-dot" style="background:var(--danger)"></div>
+              Tactical World Map & GeoIP Lookup
+            </div>
           </div>
-          <div id="scan-history" class="scroll-y" style="max-height:400px">
-            <div class="empty">No scans run yet</div>
+
+          <div class="scan-input-row">
+            <input class="scan-input" id="geoip-ip-input" placeholder="Enter IP address (e.g. 8.8.8.8)" value="8.8.8.8" />
+            <button class="scan-btn" style="background:var(--danger); color:#fff" onclick="runIpGeoLookup()">🎯 Geolocate</button>
+          </div>
+
+          <!-- Map Visual Container -->
+          <div class="map-container-relative">
+            <div class="map-grid-overlay"></div>
+            <svg class="cyber-world-map" viewBox="0 0 1000 500">
+              <!-- Grid Equator and Meridian lines -->
+              <line x1="0" y1="250" x2="1000" y2="250" stroke="rgba(99, 102, 241, 0.15)" stroke-dasharray="4" />
+              <line x1="500" y1="0" x2="500" y2="500" stroke="rgba(99, 102, 241, 0.15)" stroke-dasharray="4" />
+              <!-- Render projected continent wireframes -->
+              ${getContinentSvgPaths()}
+            </svg>
+            <!-- Pulse Marker Crosshair -->
+            <div class="map-target-crosshair" id="map-target-crosshair" style="left:50%; top:50%; transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s cubic-bezier(0.25, 1, 0.5, 1);">
+              <div class="crosshair-line-h"></div>
+              <div class="crosshair-line-v"></div>
+              <div class="crosshair-ring"></div>
+            </div>
+          </div>
+
+          <!-- Live Telemetry Readout -->
+          <div class="map-info-bar">
+            <div class="map-info-item">
+              <span class="map-info-lbl">Target IP</span>
+              <span class="map-info-val" id="geoip-val-ip">-</span>
+            </div>
+            <div class="map-info-item">
+              <span class="map-info-lbl">Coordinates</span>
+              <span class="map-info-val" id="geoip-val-coords">-</span>
+            </div>
+            <div class="map-info-item">
+              <span class="map-info-lbl">Location</span>
+              <span class="map-info-val" id="geoip-val-location">-</span>
+            </div>
+            <div class="map-info-item">
+              <span class="map-info-lbl">ISP / Organization</span>
+              <span class="map-info-val" id="geoip-val-isp">-</span>
+            </div>
+            <div class="map-info-item">
+              <span class="map-info-lbl">Circuit Source</span>
+              <span class="map-info-val" id="geoip-val-source">-</span>
+            </div>
+            <div class="map-info-item">
+              <span class="map-info-lbl">Response Latency</span>
+              <span class="map-info-val" id="geoip-val-latency">-</span>
+            </div>
           </div>
         </div>
 
       </div>
     </div>
   `);
+
+  if (!AppState.scanHistory) {
+    AppState.scanHistory = [];
+  }
+
+  // Seed initial lookup for Google DNS on view load
+  setTimeout(() => {
+    runIpGeoLookup('8.8.8.8');
+  }, 300);
+}
+
+// ─── GEOIP LOOKUP LOGIC ───────────────────────────────────────────────────────
+
+async function runIpGeoLookup(ipAddress = null) {
+  const input = document.getElementById('geoip-ip-input');
+  const ip = (ipAddress || (input && input.value.trim()) || '').trim();
+  
+  if (!ip) {
+    showToast('Input Required', 'Please enter a valid IP address.', 'warning');
+    return;
+  }
+
+  // Update input text if triggered programmatically
+  if (input && ipAddress) {
+    input.value = ip;
+  }
+
+  const crosshair = document.getElementById('map-target-crosshair');
+  if (crosshair) {
+    crosshair.style.opacity = '0.5';
+  }
+
+  // Reset statuses to loading
+  document.getElementById('geoip-val-ip').textContent = ip;
+  document.getElementById('geoip-val-coords').textContent = 'RESOLVING...';
+  document.getElementById('geoip-val-location').textContent = 'RESOLVING...';
+  document.getElementById('geoip-val-isp').textContent = 'RESOLVING...';
+  document.getElementById('geoip-val-source').textContent = 'RESOLVING...';
+  document.getElementById('geoip-val-latency').textContent = 'RESOLVING...';
+
+  try {
+    const response = await fetch(`${API_BASE}/attribution/geoip/${ip}`);
+    if (!response.ok) {
+      throw new Error(`HTTP error ${response.status}`);
+    }
+    const data = await response.json();
+
+    document.getElementById('geoip-val-ip').textContent = data.ip || ip;
+
+    const lat = data.latitude;
+    const lon = data.longitude;
+
+    if (lat !== null && lon !== null && lat !== undefined && lon !== undefined) {
+      document.getElementById('geoip-val-coords').textContent = `${lat.toFixed(4)}°, ${lon.toFixed(4)}°`;
+      
+      // Calculate equirectangular project percentages
+      const xPercent = ((lon + 180) / 360) * 100;
+      const yPercent = ((90 - lat) / 180) * 100;
+
+      if (crosshair) {
+        crosshair.style.left = `${xPercent}%`;
+        crosshair.style.top = `${yPercent}%`;
+        crosshair.style.opacity = '1';
+      }
+    } else {
+      document.getElementById('geoip-val-coords').textContent = 'UNKNOWN (NO COORDS)';
+      if (crosshair) {
+        crosshair.style.left = '50%';
+        crosshair.style.top = '50%';
+        crosshair.style.opacity = '0.15';
+      }
+    }
+
+    const locationStr = [data.city, data.country].filter(Boolean).join(', ') || 'Unknown';
+    document.getElementById('geoip-val-location').textContent = locationStr;
+
+    const ispStr = [data.org, data.asn ? `(ASN ${data.asn})` : ''].filter(Boolean).join(' ') || 'Unknown';
+    document.getElementById('geoip-val-isp').textContent = ispStr;
+
+    document.getElementById('geoip-val-source').textContent = data.source ? data.source.toUpperCase() : 'UNKNOWN';
+    document.getElementById('geoip-val-latency').textContent = data.latency_ms ? `${data.latency_ms.toFixed(1)} ms` : 'N/A';
+
+    showToast('IP Attributed', `Successfully mapped IP: ${ip} to ${locationStr}`, 'success');
+  } catch (error) {
+    console.error('GeoIP attribution query failed:', error);
+    showToast('Attribution Failed', `Could not geolocate IP: ${ip}`, 'error');
+
+    document.getElementById('geoip-val-coords').textContent = 'ERROR';
+    document.getElementById('geoip-val-location').textContent = 'ERROR';
+    document.getElementById('geoip-val-isp').textContent = 'ERROR';
+    document.getElementById('geoip-val-source').textContent = 'ERROR';
+    document.getElementById('geoip-val-latency').textContent = 'ERROR';
+
+    if (crosshair) {
+      crosshair.style.left = '50%';
+      crosshair.style.top = '50%';
+      crosshair.style.opacity = '0.15';
+    }
+  }
 }
 
 // ─── SCAN LOGIC ───────────────────────────────────────────────────────────────
 
 function runScan() {
   const input = document.getElementById('scan-url-input');
-  const url   = (input && input.value) || '';
+  const url = (input && input.value) || '';
   if (!url) { toast('Enter a URL to analyse'); return; }
 
   const el = document.getElementById('scan-results');
-  if (el) el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:12px 0;text-align:center">🔍 Analysing...</div>';
+  if (el) {
+    el.innerHTML = `
+      <div style="color:var(--muted);font-size:11px;padding:20px 0;text-align:center">
+        <div class="pulse" style="width:16px;height:16px;border-radius:50%;background:var(--accent);margin:0 auto 10px"></div>
+        🔍 Running heuristic heuristics & risk scoring...
+      </div>
+    `;
+  }
 
   setTimeout(() => {
-    const score  = Math.floor(Math.random() * 60) + 35;
+    const score = Math.floor(Math.random() * 60) + 35;
     const isSafe = score < 50;
 
+    // Selection of diverse target IPs to showcase map panning/pulsing
+    const mockIPs = [
+      '8.8.8.8',          // US
+      '1.1.1.1',          // US
+      '185.220.101.45',   // DE (Germany)
+      '95.217.228.176',   // FI (Finland)
+      '103.86.96.100',    // SG (Singapore)
+      '185.190.140.10',   // CH (Switzerland)
+      '202.164.50.2',     // IN (India)
+      '82.102.23.1',      // UK
+    ];
+    const resolvedIP = mockIPs[Math.floor(Math.random() * mockIPs.length)];
+
     const checks = [
-      { label: 'Domain Age',      val: isSafe ? '4+ years'              : '< 30 days',                ok: isSafe },
-      { label: 'SSL Certificate', val: isSafe ? 'Valid (trusted CA)'    : 'Self-signed / missing',    ok: isSafe },
-      { label: 'IP Reputation',   val: isSafe ? 'Clean'                 : 'Flagged in 3 blocklists',  ok: isSafe },
-      { label: 'Redirect Chain',  val: isSafe ? 'None'                  : '2 suspicious redirects',   ok: isSafe },
-      { label: 'WHOIS Privacy',   val: isSafe ? 'Transparent'           : 'Hidden proxy',             ok: isSafe },
+      { label: 'Domain Age',      val: isSafe ? '4+ years' : '< 30 days', ok: isSafe },
+      { label: 'SSL Certificate', val: isSafe ? 'Valid (trusted CA)' : 'Self-signed / missing', ok: isSafe },
+      { label: 'IP Reputation',   val: isSafe ? 'Clean' : 'Flagged in 3 blocklists', ok: isSafe },
+      { label: 'Resolved IP',     val: `<span style="text-decoration:underline;cursor:pointer;color:var(--info)" onclick="runIpGeoLookup('${resolvedIP}')">${resolvedIP} 🎯</span>`, ok: true },
+      { label: 'Redirect Chain',  val: isSafe ? 'None' : '2 suspicious redirects', ok: isSafe },
+      { label: 'WHOIS Privacy',   val: isSafe ? 'Transparent' : 'Hidden proxy', ok: isSafe },
     ];
 
     if (el) {
       el.innerHTML = `
-        <div class="scan-result ${isSafe ? 'safe' : 'unsafe'}">
+        <div class="scan-result ${isSafe ? 'safe' : 'unsafe'}" style="animation: slide-in-up 0.3s ease;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <span style="font-size:20px">${isSafe ? '✅' : '🚨'}</span>
             <div>
@@ -81,31 +326,37 @@ function runScan() {
           ${checks.map(c => `
             <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px">
               <span style="color:var(--muted)">${c.label}</span>
-              <span style="color:${c.ok ? 'var(--accent)' : 'var(--danger)'}">${c.val}</span>
+              <span>${c.val}</span>
             </div>`).join('')}
         </div>`;
     }
 
-    AppState.scanHistory.unshift({ url, score, safe: isSafe, time: 'just now' });
+    if (!AppState.scanHistory) {
+      AppState.scanHistory = [];
+    }
+    AppState.scanHistory.unshift({ url, score, safe: isSafe, time: 'just now', ip: resolvedIP });
     renderScanHistory();
-  }, 800);
+
+    // Automatically trigger GeoIP plotting on map
+    runIpGeoLookup(resolvedIP);
+  }, 1200);
 }
 
 function renderScanHistory() {
   const el = document.getElementById('scan-history');
   if (!el) return;
 
-  if (!AppState.scanHistory.length) {
+  if (!AppState.scanHistory || !AppState.scanHistory.length) {
     el.innerHTML = '<div class="empty">No scans run yet</div>';
     return;
   }
 
   el.innerHTML = AppState.scanHistory.slice(0, 10).map(s => `
-    <div class="domain-row" onclick="toast('Re-loading scan for: ${s.url}')">
+    <div class="domain-row" onclick="runIpGeoLookup('${s.ip}'); toast('Tracing: ${s.url}')">
       <span style="font-size:16px">${s.safe ? '✅' : '🚨'}</span>
       <div style="flex:1;min-width:0">
         <div class="domain-name">${s.url}</div>
-        <div style="font-size:10px;color:var(--muted)">${s.time}</div>
+        <div style="font-size:10px;color:var(--muted)">IP: ${s.ip || 'N/A'} · ${s.time}</div>
       </div>
       <span style="font-size:10px;color:${s.safe ? 'var(--accent)' : 'var(--danger)'};font-weight:700">${s.score}</span>
     </div>`).join('');

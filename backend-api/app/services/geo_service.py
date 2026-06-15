@@ -18,6 +18,8 @@ class GeoResult:
     org:          Optional[str]
     source:       str           # "maxmind" | "ip-api" | "unavailable"
     latency_ms:   Optional[float] = None
+    latitude:     Optional[float] = None
+    longitude:    Optional[float] = None
 
 class GeoIPService:
     def __init__(self, maxmind_account_id: str, maxmind_license_key: str):
@@ -76,6 +78,8 @@ class GeoIPService:
                 org          = d.get("traits", {}).get("isp"),
                 source       = "maxmind",
                 latency_ms   = lat,
+                latitude     = d.get("location", {}).get("latitude"),
+                longitude    = d.get("location", {}).get("longitude"),
             )
 
         except Exception:
@@ -91,7 +95,7 @@ class GeoIPService:
     async def _fallback(self, ip: str) -> GeoResult:
         url = (
             f"http://ip-api.com/json/{ip}"
-            "?fields=status,country,countryCode,city,isp,org,as,query"
+            "?fields=status,country,countryCode,city,isp,org,as,query,lat,lon"
         )
         try:
             async with httpx.AsyncClient(timeout=5.0) as client:
@@ -108,6 +112,8 @@ class GeoIPService:
                 asn          = d.get("as"),
                 org          = d.get("org"),
                 source       = "ip-api",
+                latitude     = d.get("lat"),
+                longitude    = d.get("lon"),
             )
         except Exception:
             return GeoResult(

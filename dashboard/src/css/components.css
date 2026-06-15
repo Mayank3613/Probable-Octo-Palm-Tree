@@ -764,3 +764,97 @@
   padding: 16px;
   background: rgba(255, 255, 255, 0.01);
 }
+
+/* ─── TACTICAL WORLD MAP VISUALIZER ───────────────────────────────────────── */
+.map-visualizer-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.map-container-relative {
+  position: relative;
+  width: 100%;
+  height: 260px;
+  background: #04020f;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4) inset;
+}
+.map-grid-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image: 
+    linear-gradient(rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  pointer-events: none;
+}
+.cyber-world-map {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.map-continent {
+  fill: rgba(6, 182, 212, 0.04);
+  stroke: rgba(6, 182, 212, 0.35);
+  stroke-width: 1.5px;
+  transition: fill 0.3s, stroke 0.3s;
+}
+.map-continent:hover {
+  fill: rgba(6, 182, 212, 0.1);
+  stroke: var(--cyber-blue);
+}
+.map-target-crosshair {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+}
+.crosshair-line-h {
+  position: absolute;
+  top: 50%; left: 0; right: 0; height: 1px;
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+.crosshair-line-v {
+  position: absolute;
+  left: 50%; top: 0; bottom: 0; width: 1px;
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+}
+.crosshair-ring {
+  position: absolute;
+  top: 4px; left: 4px; width: 14px; height: 14px;
+  border: 1px solid var(--danger);
+  border-radius: 50%;
+  animation: pulse-cyber-danger 1.5s infinite;
+}
+.map-info-bar {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted2);
+}
+.map-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.map-info-lbl {
+  color: var(--muted);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+.map-info-val {
+  color: var(--cyber-blue);
+  font-weight: 700;
+}

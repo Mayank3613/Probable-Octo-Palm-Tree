@@ -2,6 +2,18 @@
 
 All changes to the project are documented here in reverse chronological order.
 ---
+## [2026-06-15] Interactive GeoIP Tactical World Map & Alignment Overhaul
+
+### Added
+- **Tactical SVG World Map Visualizer**: Integrated a stylized equirectangular vector SVG world map into the URL Scanner tab, complete with longitudinal/latitudinal project paths, grid meridian overlays, and dynamic element hover states.
+- **Dynamic Target Tracking Crosshair**: Programmed a pulsing neon red crosshair indicator that translates lat/lon coordinate inputs into percentage-based SVG coordinate maps, sliding smoothly to center on the active geolocated IP.
+- **Live Attribution Readout Telemetry**: Created a telemetry metadata sidebar next to the map containing real-time readouts of resolved IP Address, Coordinates (Lat/Lon), Location (City/Country), ISP/Organization, and Resolution Latency/Source.
+- **Automated Mapping Callbacks**: Linked the URL analysis scanner results directly to the GeoIP map visualizer, resolving the threat's target IP and centering the tactical map crosshair automatically.
+
+### Fixed
+- **GeoIP Fallback Parameters**: Fixed the ip-api query parameters in `geo_service.py` to request the missing `lat` and `lon` fields, restoring fallback geolocation coordinates functionality.
+
+---
 ## [2026-06-14] Premium Cyber Security Command Center UI Redesign
 
 ### Added
