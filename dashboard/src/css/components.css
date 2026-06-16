@@ -858,3 +858,199 @@
   color: var(--cyber-blue);
   font-weight: 700;
 }
+
+/* ─── TRACEROUTE & VENDOR & NETWORK TELEMETRY UPGRADES ─────────────────────── */
+
+@keyframes traceroute-pulse {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.traceroute-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  stroke-dasharray: 8 4;
+  animation: traceroute-pulse 1.5s linear infinite;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.traceroute-line.active {
+  opacity: 0.85;
+}
+
+.traceroute-line.safe {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 4px var(--accent));
+}
+
+.traceroute-line.unsafe {
+  stroke: var(--danger);
+  filter: drop-shadow(0 0 4px var(--danger));
+}
+
+/* Vendor engine verdict grid */
+.vendor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.vendor-item {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  transition: all 0.2s ease;
+}
+
+.vendor-item.clean {
+  border-color: rgba(16, 185, 129, 0.15);
+  background: rgba(16, 185, 129, 0.02);
+}
+
+.vendor-item.malicious {
+  border-color: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.04);
+  color: var(--danger);
+}
+
+.vendor-name {
+  color: var(--muted2);
+}
+
+.vendor-item.clean .vendor-name {
+  color: var(--text);
+}
+
+.vendor-item.malicious .vendor-name {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+/* Page Preview sandbox screenshot mockup */
+.sandbox-screenshot-mockup {
+  width: 100%;
+  height: 110px;
+  background: #020108;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) inset;
+}
+
+.sandbox-header {
+  height: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.sandbox-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.sandbox-body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 8px;
+}
+
+.sandbox-wireframe {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  opacity: 0.12;
+}
+
+.wireframe-line {
+  height: 5px;
+  background: var(--muted2);
+  border-radius: 3px;
+}
+
+.sandbox-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(1px);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.sandbox-overlay.safe {
+  color: var(--accent);
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+}
+
+.sandbox-overlay.unsafe {
+  color: var(--danger);
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+/* Headless Browser Network Logs */
+.network-logs-panel {
+  background: #020108;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  max-height: 120px;
+  overflow-y: auto;
+  color: var(--muted2);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) inset;
+}
+
+.network-log-row {
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+  display: flex;
+  justify-content: space-between;
+}
+
+.network-log-row:last-child {
+  border-bottom: none;
+}
+
+.network-log-row.blocked {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.network-log-row.redirect {
+  color: var(--warn);
+}
+
+.network-log-row.success {
+  color: var(--accent);
+}
+

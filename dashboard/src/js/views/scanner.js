@@ -1,6 +1,6 @@
 /* ─── URL SCANNER & ATTRIBUTION VIEW ──────────────────────────────────────────
    Combines real-time URL threat scanning with an interactive Tactical World Map
-   that maps and attributes IP geolocation telemetry.
+   and comprehensive sandbox trace metrics referencing urlscan.io & VirusTotal.
 ─────────────────────────────────────────────────────────────────────────── */
 
 // Stylized equirectangular coordinates for major landmasses
@@ -45,6 +45,18 @@ const MAP_CONTINENTS = [
   ]
 ];
 
+const VENDORS = [
+  "Google Safe Browsing",
+  "Kaspersky Lab",
+  "Sophos Threat Intel",
+  "Bitdefender Global",
+  "CrowdStrike Falcon",
+  "AbuseIPDB Heuristics",
+  "Fortinet Sentinel",
+  "Avast SecureWeb",
+  "Symantec Gateway"
+];
+
 function getContinentSvgPaths() {
   return MAP_CONTINENTS.map(points => {
     const pointsStr = points.map(([lon, lat]) => {
@@ -69,7 +81,7 @@ function renderScannerView() {
         </div>
       </div>
 
-      <div class="scan-grid" style="display:grid; grid-template-columns: 1.1fr 1.2fr; gap: 16px;">
+      <div class="scan-grid" style="display:grid; grid-template-columns: 1.25fr 1fr; gap: 16px;">
         
         <!-- Left Column: URL Scanner -->
         <div style="display:flex; flex-direction:column; gap:16px">
@@ -86,7 +98,32 @@ function renderScannerView() {
               <input class="scan-input" id="scan-url-input" placeholder="https://suspicious-site.example.com/path?param=value" />
               <button class="scan-btn" onclick="runScan()">▶ Analyse</button>
             </div>
-            <div id="scan-results"></div>
+            
+            <!-- Dynamic Sandbox results -->
+            <div id="scan-results-container" style="display:none; margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+              <!-- Scan Header Details -->
+              <div id="scan-results-header"></div>
+              
+              <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <!-- Headless Browser Preview -->
+                <div>
+                  <div class="section-sep" style="margin-bottom:8px">Sandbox Browser Mockup</div>
+                  <div id="scan-results-mockup"></div>
+                </div>
+                
+                <!-- Headless Browser Network Logs -->
+                <div>
+                  <div class="section-sep" style="margin-bottom:8px">Simulated Request Logs</div>
+                  <div id="scan-results-logs" class="network-logs-panel"></div>
+                </div>
+              </div>
+              
+              <!-- Multi-Engine Verdict Grid -->
+              <div style="margin-top: 16px;">
+                <div class="section-sep" style="margin-bottom:8px">Security Engine Verdicts (Multi-Vendor)</div>
+                <div id="scan-results-vendors" class="vendor-grid"></div>
+              </div>
+            </div>
           </div>
 
           <!-- Scan History -->
@@ -97,7 +134,7 @@ function renderScannerView() {
                 Scan History
               </div>
             </div>
-            <div id="scan-history" class="scroll-y" style="max-height:280px">
+            <div id="scan-history" class="scroll-y" style="max-height:220px">
               <div class="empty">No scans run yet</div>
             </div>
           </div>
@@ -127,6 +164,10 @@ function renderScannerView() {
               <line x1="500" y1="0" x2="500" y2="500" stroke="rgba(99, 102, 241, 0.15)" stroke-dasharray="4" />
               <!-- Render projected continent wireframes -->
               ${getContinentSvgPaths()}
+              <!-- Dynamic Traceroute Trajectory Line -->
+              <path id="map-traceroute-line" class="traceroute-line" d="" />
+              <!-- Host Point in Frankfurt -->
+              <circle id="map-host-dot" cx="524" cy="111" r="5" fill="var(--cyber-blue)" style="opacity: 0; filter: drop-shadow(0 0 4px var(--cyber-blue)); transition: opacity 0.4s ease;" />
             </svg>
             <!-- Pulse Marker Crosshair -->
             <div class="map-target-crosshair" id="map-target-crosshair" style="left:50%; top:50%; transition: left 0.6s cubic-bezier(0.25, 1, 0.5, 1), top 0.6s cubic-bezier(0.25, 1, 0.5, 1);">
@@ -175,13 +216,13 @@ function renderScannerView() {
 
   // Seed initial lookup for Google DNS on view load
   setTimeout(() => {
-    runIpGeoLookup('8.8.8.8');
+    runIpGeoLookup('8.8.8.8', true);
   }, 300);
 }
 
 // ─── GEOIP LOOKUP LOGIC ───────────────────────────────────────────────────────
 
-async function runIpGeoLookup(ipAddress = null) {
+async function runIpGeoLookup(ipAddress = null, isSafe = true) {
   const input = document.getElementById('geoip-ip-input');
   const ip = (ipAddress || (input && input.value.trim()) || '').trim();
   
@@ -209,7 +250,8 @@ async function runIpGeoLookup(ipAddress = null) {
   document.getElementById('geoip-val-latency').textContent = 'RESOLVING...';
 
   try {
-    const response = await fetch(`${API_BASE}/attribution/geoip/${ip}`);
+    const apiBase = window.API_BASE || 'http://127.0.0.1:8000';
+    const response = await fetch(`${apiBase}/attribution/geoip/${ip}`);
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
     }
@@ -232,6 +274,34 @@ async function runIpGeoLookup(ipAddress = null) {
         crosshair.style.top = `${yPercent}%`;
         crosshair.style.opacity = '1';
       }
+
+      // Draw Traceroute bezier line from Frankfurt, Germany (host)
+      const hostX = 524;
+      const hostY = 111;
+      const targetX = ((lon + 180) / 360) * 1000;
+      const targetY = ((90 - lat) / 180) * 500;
+
+      const hostDot = document.getElementById('map-host-dot');
+      if (hostDot) hostDot.style.opacity = '1';
+
+      const tracerouteLine = document.getElementById('map-traceroute-line');
+      if (tracerouteLine) {
+        const dx = targetX - hostX;
+        const dy = targetY - hostY;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const archHeight = Math.min(120, dist * 0.35);
+        const ctrlX = (hostX + targetX) / 2;
+        const ctrlY = Math.min(hostY, targetY) - archHeight;
+
+        const dString = `M ${hostX} ${hostY} Q ${ctrlX} ${ctrlY} ${targetX} ${targetY}`;
+        tracerouteLine.setAttribute('d', dString);
+        
+        // Restart animation trace sweep
+        tracerouteLine.setAttribute('class', 'traceroute-line');
+        void tracerouteLine.offsetWidth; // force reflow
+        tracerouteLine.classList.add('active');
+        tracerouteLine.classList.add(isSafe ? 'safe' : 'unsafe');
+      }
     } else {
       document.getElementById('geoip-val-coords').textContent = 'UNKNOWN (NO COORDS)';
       if (crosshair) {
@@ -239,6 +309,10 @@ async function runIpGeoLookup(ipAddress = null) {
         crosshair.style.top = '50%';
         crosshair.style.opacity = '0.15';
       }
+      const hostDot = document.getElementById('map-host-dot');
+      if (hostDot) hostDot.style.opacity = '0';
+      const tracerouteLine = document.getElementById('map-traceroute-line');
+      if (tracerouteLine) tracerouteLine.setAttribute('class', 'traceroute-line');
     }
 
     const locationStr = [data.city, data.country].filter(Boolean).join(', ') || 'Unknown';
@@ -266,6 +340,10 @@ async function runIpGeoLookup(ipAddress = null) {
       crosshair.style.top = '50%';
       crosshair.style.opacity = '0.15';
     }
+    const hostDot = document.getElementById('map-host-dot');
+    if (hostDot) hostDot.style.opacity = '0';
+    const tracerouteLine = document.getElementById('map-traceroute-line');
+    if (tracerouteLine) tracerouteLine.setAttribute('class', 'traceroute-line');
   }
 }
 
@@ -276,44 +354,68 @@ function runScan() {
   const url = (input && input.value) || '';
   if (!url) { toast('Enter a URL to analyse'); return; }
 
-  const el = document.getElementById('scan-results');
-  if (el) {
-    el.innerHTML = `
-      <div style="color:var(--muted);font-size:11px;padding:20px 0;text-align:center">
+  // Extract hostname/domain name for request logs
+  let domain = 'target-host';
+  try {
+    const formatted = url.startsWith('http') ? url : `http://${url}`;
+    domain = new URL(formatted).hostname;
+  } catch {
+    domain = url;
+  }
+
+  const resultsContainer = document.getElementById('scan-results-container');
+  const resultsHeader = document.getElementById('scan-results-header');
+  const resultsMockup = document.getElementById('scan-results-mockup');
+  const resultsVendors = document.getElementById('scan-results-vendors');
+  
+  if (resultsContainer) {
+    resultsContainer.style.display = 'block';
+  }
+
+  // Set scanning loading state
+  if (resultsHeader) {
+    resultsHeader.innerHTML = `
+      <div style="color:var(--muted);font-size:11px;padding:10px 0;text-align:center">
         <div class="pulse" style="width:16px;height:16px;border-radius:50%;background:var(--accent);margin:0 auto 10px"></div>
-        🔍 Running heuristic heuristics & risk scoring...
+        🔍 Initializing headless browser sandboxed scan for ${domain}...
       </div>
     `;
   }
+  
+  if (resultsMockup) resultsMockup.innerHTML = '';
+  if (resultsVendors) resultsVendors.innerHTML = '';
 
-  setTimeout(() => {
-    const score = Math.floor(Math.random() * 60) + 35;
-    const isSafe = score < 50;
+  const score = Math.floor(Math.random() * 60) + 35;
+  const isSafe = score < 50;
 
-    // Selection of diverse target IPs to showcase map panning/pulsing
-    const mockIPs = [
-      '8.8.8.8',          // US
-      '1.1.1.1',          // US
-      '185.220.101.45',   // DE (Germany)
-      '95.217.228.176',   // FI (Finland)
-      '103.86.96.100',    // SG (Singapore)
-      '185.190.140.10',   // CH (Switzerland)
-      '202.164.50.2',     // IN (India)
-      '82.102.23.1',      // UK
-    ];
-    const resolvedIP = mockIPs[Math.floor(Math.random() * mockIPs.length)];
+  // Selection of diverse target IPs to showcase map panning/pulsing
+  const mockIPs = [
+    '8.8.8.8',          // US
+    '1.1.1.1',          // US
+    '185.220.101.45',   // DE (Germany)
+    '95.217.228.176',   // FI (Finland)
+    '103.86.96.100',    // SG (Singapore)
+    '185.190.140.10',   // CH (Switzerland)
+    '202.164.50.2',     // IN (India)
+    '82.102.23.1',      // UK
+  ];
+  const resolvedIP = mockIPs[Math.floor(Math.random() * mockIPs.length)];
+
+  // Trigger simulated request logs line by line
+  simulateRequestLogs(domain, isSafe, () => {
+    // ─── SCAN HYDRATION POST-LOGS ───
 
     const checks = [
       { label: 'Domain Age',      val: isSafe ? '4+ years' : '< 30 days', ok: isSafe },
       { label: 'SSL Certificate', val: isSafe ? 'Valid (trusted CA)' : 'Self-signed / missing', ok: isSafe },
       { label: 'IP Reputation',   val: isSafe ? 'Clean' : 'Flagged in 3 blocklists', ok: isSafe },
-      { label: 'Resolved IP',     val: `<span style="text-decoration:underline;cursor:pointer;color:var(--info)" onclick="runIpGeoLookup('${resolvedIP}')">${resolvedIP} 🎯</span>`, ok: true },
+      { label: 'Resolved IP',     val: `<span style="text-decoration:underline;cursor:pointer;color:var(--info)" onclick="runIpGeoLookup('${resolvedIP}', ${isSafe})">${resolvedIP} 🎯</span>`, ok: true },
       { label: 'Redirect Chain',  val: isSafe ? 'None' : '2 suspicious redirects', ok: isSafe },
       { label: 'WHOIS Privacy',   val: isSafe ? 'Transparent' : 'Hidden proxy', ok: isSafe },
     ];
 
-    if (el) {
-      el.innerHTML = `
+    if (resultsHeader) {
+      resultsHeader.innerHTML = `
         <div class="scan-result ${isSafe ? 'safe' : 'unsafe'}" style="animation: slide-in-up 0.3s ease;">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
             <span style="font-size:20px">${isSafe ? '✅' : '🚨'}</span>
@@ -331,15 +433,107 @@ function runScan() {
         </div>`;
     }
 
+    // Render screenshot mockup viewport
+    if (resultsMockup) {
+      resultsMockup.innerHTML = getMockupHtml(isSafe);
+    }
+
+    // Render multi-vendor engine verdicts
+    if (resultsVendors) {
+      resultsVendors.innerHTML = getVendorsHtml(isSafe);
+    }
+
     if (!AppState.scanHistory) {
       AppState.scanHistory = [];
     }
     AppState.scanHistory.unshift({ url, score, safe: isSafe, time: 'just now', ip: resolvedIP });
     renderScanHistory();
 
-    // Automatically trigger GeoIP plotting on map
-    runIpGeoLookup(resolvedIP);
-  }, 1200);
+    // Automatically trigger GeoIP plotting & traceroute mapping
+    runIpGeoLookup(resolvedIP, isSafe);
+  });
+}
+
+function simulateRequestLogs(domain, isSafe, callback) {
+  const logsContainer = document.getElementById('scan-results-logs');
+  if (!logsContainer) return;
+  logsContainer.innerHTML = '';
+
+  const steps = [
+    { text: `GET https://${domain}/`, type: 'success', delay: 100, meta: '200 OK (HTML)' },
+    { text: `GET https://${domain}/assets/index.js`, type: 'success', delay: 350, meta: '200 OK (JS)' },
+    isSafe
+      ? { text: `GET https://${domain}/assets/theme.css`, type: 'success', delay: 600, meta: '200 OK (CSS)' }
+      : { text: `GET https://${domain}/payload/exploit.bin`, type: 'blocked', delay: 600, meta: '403 BLOCKED (YARA)' },
+    { text: `GET https://${domain}/favicon.ico`, type: 'success', delay: 850, meta: '200 OK (PNG)' },
+    !isSafe
+      ? { text: `POST https://exfil-gateway.net/api`, type: 'blocked', delay: 1100, meta: '403 BLOCKED (MALWARE)' }
+      : { text: `GET https://${domain}/api/health`, type: 'success', delay: 1100, meta: '200 OK (JSON)' }
+  ];
+
+  steps.forEach(step => {
+    setTimeout(() => {
+      const row = document.createElement('div');
+      row.className = `network-log-row ${step.type}`;
+      row.innerHTML = `
+        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%">${step.text}</span>
+        <span style="font-weight:700">${step.meta}</span>
+      `;
+      logsContainer.appendChild(row);
+      // Auto scroll container
+      logsContainer.scrollTop = logsContainer.scrollHeight;
+    }, step.delay);
+  });
+
+  setTimeout(callback, 1300);
+}
+
+function getMockupHtml(isSafe) {
+  const statusClass = isSafe ? 'safe' : 'unsafe';
+  const statusText = isSafe ? '● VERDICT: SECURE SITE' : '▲ ACCESS BLOCKED: MALICIOUS';
+  return `
+    <div class="sandbox-screenshot-mockup">
+      <div class="sandbox-header">
+        <div class="sandbox-dot" style="background:#ef4444"></div>
+        <div class="sandbox-dot" style="background:#f59e0b"></div>
+        <div class="sandbox-dot" style="background:#10b981"></div>
+        <span style="font-size:8px; color:var(--muted); font-family:var(--font-mono); margin-left:8px">SANDBOX PORTAL ACTIVE</span>
+      </div>
+      <div class="sandbox-body">
+        <div class="sandbox-wireframe">
+          <div class="wireframe-line" style="width: 40%"></div>
+          <div class="wireframe-line" style="width: 90%"></div>
+          <div class="wireframe-line" style="width: 75%"></div>
+          <div class="wireframe-line" style="width: 60%"></div>
+        </div>
+        <div class="sandbox-overlay ${statusClass}">
+          <span>${statusText}</span>
+          <span style="font-size:8px; font-weight:400; opacity:0.6; margin-top:4px; font-family:var(--font-mono)">Virtual sandbox preview</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function getVendorsHtml(isSafe) {
+  const maliciousIndices = new Set();
+  if (!isSafe) {
+    while (maliciousIndices.size < 3) {
+      maliciousIndices.add(Math.floor(Math.random() * VENDORS.length));
+    }
+  }
+
+  return VENDORS.map((v, index) => {
+    const isMalicious = maliciousIndices.has(index);
+    const itemClass = isMalicious ? 'malicious' : 'clean';
+    const verdictText = isMalicious ? 'Malicious 🚨' : 'Clean ✅';
+    return `
+      <div class="vendor-item ${itemClass}">
+        <span class="vendor-name">${v}</span>
+        <span style="font-weight:700">${verdictText}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderScanHistory() {
@@ -352,7 +546,7 @@ function renderScanHistory() {
   }
 
   el.innerHTML = AppState.scanHistory.slice(0, 10).map(s => `
-    <div class="domain-row" onclick="runIpGeoLookup('${s.ip}'); toast('Tracing: ${s.url}')">
+    <div class="domain-row" onclick="runIpGeoLookup('${s.ip}', ${s.safe}); toast('Tracing: ${s.url}')">
       <span style="font-size:16px">${s.safe ? '✅' : '🚨'}</span>
       <div style="flex:1;min-width:0">
         <div class="domain-name">${s.url}</div>
